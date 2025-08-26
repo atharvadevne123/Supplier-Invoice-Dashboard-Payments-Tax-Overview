@@ -55,7 +55,7 @@ Business Unit Name
 
 ✔️ Procurement Operations Team
 
-# 📸 SNAPSHOTS OF REPORT 
+
 
 
  ![img_alt](https://github.com/Jay-reddy-adv/Supplier-Invoice-Summary-with-Tax-Outstanding-Overview-OTBI-Report/blob/b463ed939c1be6b37f630f266562d8b65957700a/Title.png)
