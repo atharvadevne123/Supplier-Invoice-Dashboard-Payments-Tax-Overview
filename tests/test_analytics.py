@@ -120,3 +120,52 @@ def test_overdue_excludes_paid() -> None:
         }
     ]
     assert overdue_invoices(paid) == []
+
+
+def test_monthly_trend_empty_invoices() -> None:
+    assert monthly_invoice_trend([]) == []
+
+
+def test_payment_status_distribution_empty() -> None:
+    assert payment_status_distribution([]) == {}
+
+
+def test_currency_breakdown_empty() -> None:
+    assert currency_breakdown([]) == []
+
+
+def test_overdue_invoices_partial_included() -> None:
+    from datetime import timedelta
+    from decimal import Decimal
+
+    partial = [
+        {
+            "invoice_number": "PART-001",
+            "supplier": "X",
+            "invoice_date": date.today() - timedelta(days=45),
+            "invoice_amount": Decimal("1000.00"),
+            "amount_paid": Decimal("500.00"),
+            "payment_status": "PARTIAL",
+        }
+    ]
+    result = overdue_invoices(partial)
+    assert len(result) == 1
+    assert result[0]["payment_status"] == "PARTIAL"
+
+
+def test_supplier_ranking_aggregates_across_invoices() -> None:
+    invoices = [
+        {
+            "supplier": "Acme",
+            "invoice_amount": Decimal("1000"),
+            "amount_paid": Decimal("0"),
+        },
+        {
+            "supplier": "Acme",
+            "invoice_amount": Decimal("2000"),
+            "amount_paid": Decimal("0"),
+        },
+    ]
+    ranking = supplier_outstanding_ranking(invoices)
+    assert len(ranking) == 1
+    assert ranking[0]["supplier"] == "Acme"
