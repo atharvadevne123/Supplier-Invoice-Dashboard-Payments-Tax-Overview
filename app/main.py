@@ -322,3 +322,21 @@ def get_metrics(db: Session = Depends(get_db)) -> dict:
         "paid_invoices": paid,
         "unpaid_ratio": round(unpaid / total, 4) if total else 0,
     }
+
+
+@app.get(f"{settings.api_prefix}/analytics/currency-normalized", tags=["Analytics"])
+def get_currency_normalized(db: Session = Depends(get_db)) -> list[dict]:
+    """Return all invoices with invoice amounts normalized to USD."""
+    from app.currency import normalize_to_usd
+
+    records = db.query(SupplierInvoice).all()
+    inv_dicts = [
+        {
+            "invoice_number": r.invoice_number,
+            "supplier": r.supplier,
+            "invoice_amount": r.invoice_amount,
+            "currency": r.currency,
+        }
+        for r in records
+    ]
+    return normalize_to_usd(inv_dicts)
