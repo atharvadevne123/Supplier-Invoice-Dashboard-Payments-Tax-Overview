@@ -223,3 +223,31 @@ def test_delete_invoice_success(client, sample_invoice_data) -> None:
 def test_delete_invoice_not_found(client) -> None:
     resp = client.delete("/api/v1/invoices/NONEXISTENT")
     assert resp.status_code == 404
+
+
+def test_currency_normalized_endpoint(client, sample_invoice_data) -> None:
+    client.post("/api/v1/invoices", json=sample_invoice_data)
+    resp = client.get("/api/v1/analytics/currency-normalized")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert "invoice_amount_usd" in data[0]
+
+
+def test_summary_with_supplier_filter(client) -> None:
+    for i, supplier in enumerate(["Acme", "Beta"]):
+        data = {
+            "invoice_number": f"SUMF-{i}",
+            "business_unit": "BU",
+            "supplier": supplier,
+            "invoice_date": "2025-01-01",
+            "invoice_amount": "1000.00",
+            "amount_paid": "0.00",
+            "currency": "USD",
+            "payment_status": "UNPAID",
+        }
+        client.post("/api/v1/invoices", json=data)
+
+    resp = client.get("/api/v1/summary?supplier=Acme")
+    assert resp.status_code == 200
+    assert resp.json()["total_invoices"] == 1
