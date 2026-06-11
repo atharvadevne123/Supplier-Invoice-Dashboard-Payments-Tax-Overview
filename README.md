@@ -48,6 +48,11 @@ docker-compose up --build -d
 | GET | `/api/v1/analytics/overdue` | Overdue unpaid/partial invoices |
 | GET | `/api/v1/analytics/currency-breakdown` | Totals by currency |
 | GET | `/api/v1/analytics/status-distribution` | Count by payment status |
+| GET | `/api/v1/analytics/currency-normalized` | Invoices normalized to USD |
+| PATCH | `/api/v1/invoices/{id}` | Update payment amount/status |
+| DELETE | `/api/v1/invoices/{id}` | Delete invoice |
+| GET | `/api/v1/report/view-selector` | OTBI dual table+graph payload |
+| GET | `/api/v1/metrics` | Operational monitoring metrics |
 
 Interactive docs: `http://localhost:8000/docs`
 
@@ -79,6 +84,12 @@ app/
 ├── reporting.py     Table/graph view builders
 ├── middleware.py    Correlation-ID logging
 ├── utils.py         Pagination, formatting helpers
+├── cache.py         TTL in-memory caching
+├── currency.py      Exchange-rate conversion
+├── validators.py    Domain input validators
+├── bulk.py          CSV/JSON bulk import parser
+├── exceptions.py    Custom exceptions and handlers
+├── rate_limit.py    Per-IP rate limiting
 └── config.py        Settings from env vars
 ```
 
