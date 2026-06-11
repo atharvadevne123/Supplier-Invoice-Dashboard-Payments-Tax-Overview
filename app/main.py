@@ -374,3 +374,25 @@ def update_invoice_payment(
         logger.exception("Failed to update invoice %s", invoice_number)
         raise HTTPException(status_code=500, detail="Failed to update invoice")
     return _to_response(inv)
+
+
+@app.delete(
+    f"{settings.api_prefix}/invoices/{{invoice_number}}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["Invoices"],
+)
+def delete_invoice(invoice_number: str, db: Session = Depends(get_db)) -> None:
+    """Delete a supplier invoice by invoice number."""
+    inv = db.query(SupplierInvoice).filter(
+        SupplierInvoice.invoice_number == invoice_number
+    ).first()
+    if not inv:
+        raise HTTPException(status_code=404, detail=f"Invoice {invoice_number} not found")
+    try:
+        db.delete(inv)
+        db.commit()
+        logger.info("Deleted invoice %s", invoice_number)
+    except Exception:
+        db.rollback()
+        logger.exception("Failed to delete invoice %s", invoice_number)
+        raise HTTPException(status_code=500, detail="Failed to delete invoice")
