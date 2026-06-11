@@ -147,3 +147,47 @@ def test_create_invoice_invalid_amount(client) -> None:
     }
     resp = client.post("/api/v1/invoices", json=data)
     assert resp.status_code == 422
+
+
+def test_metrics_endpoint(client) -> None:
+    resp = client.get("/api/v1/metrics")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "total_invoices" in data
+    assert "unpaid_ratio" in data
+
+
+def test_view_selector_endpoint_empty(client) -> None:
+    resp = client.get("/api/v1/report/view-selector")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "table_view" in data
+    assert "graph_view" in data
+
+
+def test_view_selector_with_data(client, sample_invoice_data) -> None:
+    client.post("/api/v1/invoices", json=sample_invoice_data)
+    resp = client.get("/api/v1/report/view-selector")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["table_view"]) == 1
+    assert data["graph_view"]["total_invoices"] == 1
+
+
+def test_list_invoices_filter_by_payment_status(client) -> None:
+    for i, status in enumerate(["PAID", "UNPAID", "PARTIAL"]):
+        data = {
+            "invoice_number": f"STATUS-{i}",
+            "business_unit": "BU",
+            "supplier": "Supplier",
+            "invoice_date": "2025-01-01",
+            "invoice_amount": "100.00",
+            "amount_paid": "0.00",
+            "currency": "USD",
+            "payment_status": status,
+        }
+        client.post("/api/v1/invoices", json=data)
+
+    resp = client.get("/api/v1/invoices?payment_status=PAID")
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 1
