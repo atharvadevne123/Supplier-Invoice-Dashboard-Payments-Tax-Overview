@@ -15,8 +15,8 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: pip install -r requirements.txt pytest pytest-asyncio httpx ruff
+        run: pip install -r requirements.txt pytest pytest-asyncio httpx ruff pytest-cov
       - name: Lint
         run: ruff check . --select E,F,W,I --ignore E501
-      - name: Test
-        run: python -m pytest -v --tb=short
+      - name: Test with coverage
+        run: python -m pytest -v --tb=short --cov=app --cov-report=term-missing
