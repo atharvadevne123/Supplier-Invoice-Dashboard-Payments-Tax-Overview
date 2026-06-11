@@ -300,3 +300,25 @@ def get_view_selector(
         for r in records
     ]
     return build_view_selector_payload(inv_dicts)
+
+
+@app.get(f"{settings.api_prefix}/metrics", tags=["Operations"])
+def get_metrics(db: Session = Depends(get_db)) -> dict:
+    """Return basic operational metrics for monitoring dashboards."""
+    try:
+        total = db.query(SupplierInvoice).count()
+        unpaid = db.query(SupplierInvoice).filter(
+            SupplierInvoice.payment_status == "UNPAID"
+        ).count()
+        paid = db.query(SupplierInvoice).filter(
+            SupplierInvoice.payment_status == "PAID"
+        ).count()
+    except Exception:
+        logger.exception("Metrics query failed")
+        raise HTTPException(status_code=500, detail="Failed to retrieve metrics")
+    return {
+        "total_invoices": total,
+        "unpaid_invoices": unpaid,
+        "paid_invoices": paid,
+        "unpaid_ratio": round(unpaid / total, 4) if total else 0,
+    }
