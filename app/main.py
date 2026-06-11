@@ -28,6 +28,7 @@ from app.schemas import (
     PaymentStatus,
 )
 from app.utils import paginate
+from app.middleware import CorrelationIDMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+app.add_middleware(CorrelationIDMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
