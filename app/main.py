@@ -267,3 +267,34 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=settings.debug)
+
+
+@app.get(f"{settings.api_prefix}/report/view-selector", tags=["Reports"])
+def get_view_selector(
+    supplier: Optional[str] = Query(None),
+    business_unit: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Return table-view and graph-view payloads for the OTBI view-selector UI."""
+    from app.reporting import build_view_selector_payload
+
+    query = db.query(SupplierInvoice)
+    if supplier:
+        query = query.filter(SupplierInvoice.supplier.ilike(f"%{supplier}%"))
+    if business_unit:
+        query = query.filter(SupplierInvoice.business_unit.ilike(f"%{business_unit}%"))
+    records = query.all()
+    inv_dicts = [
+        {
+            "invoice_number": r.invoice_number,
+            "business_unit": r.business_unit,
+            "supplier": r.supplier,
+            "invoice_date": r.invoice_date,
+            "invoice_amount": r.invoice_amount,
+            "amount_paid": r.amount_paid,
+            "currency": r.currency,
+            "payment_status": r.payment_status,
+        }
+        for r in records
+    ]
+    return build_view_selector_payload(inv_dicts)
