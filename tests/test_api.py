@@ -191,3 +191,22 @@ def test_list_invoices_filter_by_payment_status(client) -> None:
     resp = client.get("/api/v1/invoices?payment_status=PAID")
     assert resp.status_code == 200
     assert resp.json()["total"] == 1
+
+
+def test_update_invoice_payment(client, sample_invoice_data) -> None:
+    client.post("/api/v1/invoices", json=sample_invoice_data)
+    resp = client.patch("/api/v1/invoices/INV-001?amount_paid=500.00&payment_status=PARTIAL")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["payment_status"] == "PARTIAL"
+
+
+def test_update_invoice_not_found(client) -> None:
+    resp = client.patch("/api/v1/invoices/GHOST?amount_paid=100.00")
+    assert resp.status_code == 404
+
+
+def test_update_invoice_overpayment_rejected(client, sample_invoice_data) -> None:
+    client.post("/api/v1/invoices", json=sample_invoice_data)
+    resp = client.patch("/api/v1/invoices/INV-001?amount_paid=99999.00")
+    assert resp.status_code == 422
