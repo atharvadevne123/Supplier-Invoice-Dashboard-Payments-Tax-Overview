@@ -28,14 +28,14 @@ class SupplierInvoice(Base):
 
     __tablename__ = "supplier_invoices"
 
-    invoice_number: str = Column(String(50), primary_key=True, index=True)
-    business_unit: str = Column(String(100), nullable=False, index=True)
-    supplier: str = Column(String(200), nullable=False, index=True)
-    invoice_date: date = Column(Date, nullable=False)
-    invoice_amount: Decimal = Column(Numeric(18, 2), nullable=False)
-    amount_paid: Decimal = Column(Numeric(18, 2), nullable=False, default=Decimal("0.00"))
-    currency: str = Column(String(10), nullable=False, default="USD")
-    payment_status: str = Column(String(50), nullable=False, default="UNPAID")
+    invoice_number: str = Column(String(50), primary_key=True, index=True)  # type: ignore[assignment]
+    business_unit: str = Column(String(100), nullable=False, index=True)  # type: ignore[assignment]
+    supplier: str = Column(String(200), nullable=False, index=True)  # type: ignore[assignment]
+    invoice_date: date = Column(Date, nullable=False)  # type: ignore[assignment]
+    invoice_amount: Decimal = Column(Numeric(18, 2), nullable=False)  # type: ignore[assignment]
+    amount_paid: Decimal = Column(Numeric(18, 2), nullable=False, default=Decimal("0.00"))  # type: ignore[assignment]
+    currency: str = Column(String(10), nullable=False, default="USD")  # type: ignore[assignment]
+    payment_status: str = Column(String(50), nullable=False, default="UNPAID")  # type: ignore[assignment]
 
     __table_args__ = (
         Index("ix_invoice_supplier_date", "supplier", "invoice_date"),
