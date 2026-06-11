@@ -19,10 +19,14 @@ def test_validate_currency_code_valid(code: str) -> None:
     assert validate_currency_code(code) == code
 
 
-@pytest.mark.parametrize("code", ["US", "USDD", "123", "usd"])
+@pytest.mark.parametrize("code", ["US", "USDD", "123"])
 def test_validate_currency_code_invalid(code: str) -> None:
     with pytest.raises(ValueError):
         validate_currency_code(code)
+
+
+def test_validate_currency_code_normalizes_lowercase() -> None:
+    assert validate_currency_code("usd") == "USD"
 
 
 @pytest.mark.parametrize("num", ["INV-001", "ABC123", "2025/001"])
