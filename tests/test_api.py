@@ -1,0 +1,149 @@
+"""API integration tests for the Supplier Invoice Dashboard endpoints."""
+
+import pytest
+from decimal import Decimal
+
+
+def test_health_check(client) -> None:
+    resp = client.get("/api/v1/health")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert "version" in data
+    assert data["database"] == "connected"
+
+
+def test_version_endpoint(client) -> None:
+    resp = client.get("/api/v1/version")
+    assert resp.status_code == 200
+    assert "version" in resp.json()
+
+
+def test_list_invoices_empty(client) -> None:
+    resp = client.get("/api/v1/invoices")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] == 0
+    assert data["items"] == []
+
+
+def test_create_invoice_success(client, sample_invoice_data) -> None:
+    resp = client.post("/api/v1/invoices", json=sample_invoice_data)
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["invoice_number"] == "INV-001"
+    assert data["tax_amount"] is not None
+    assert data["outstanding_amount"] is not None
+
+
+def test_create_invoice_duplicate_conflict(client, sample_invoice_data) -> None:
+    client.post("/api/v1/invoices", json=sample_invoice_data)
+    resp = client.post("/api/v1/invoices", json=sample_invoice_data)
+    assert resp.status_code == 409
+
+
+def test_get_invoice_not_found(client) -> None:
+    resp = client.get("/api/v1/invoices/NONEXISTENT")
+    assert resp.status_code == 404
+
+
+def test_get_invoice_found(client, sample_invoice_data) -> None:
+    client.post("/api/v1/invoices", json=sample_invoice_data)
+    resp = client.get("/api/v1/invoices/INV-001")
+    assert resp.status_code == 200
+    assert resp.json()["invoice_number"] == "INV-001"
+
+
+def test_list_invoices_pagination(client) -> None:
+    for i in range(5):
+        data = {
+            "invoice_number": f"INV-{i:03d}",
+            "business_unit": "BU",
+            "supplier": "Supplier",
+            "invoice_date": "2025-01-01",
+            "invoice_amount": "100.00",
+            "amount_paid": "0.00",
+            "currency": "USD",
+            "payment_status": "UNPAID",
+        }
+        client.post("/api/v1/invoices", json=data)
+
+    resp = client.get("/api/v1/invoices?page=1&page_size=2")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] == 5
+    assert len(data["items"]) == 2
+    assert data["pages"] == 3
+
+
+def test_list_invoices_filter_by_supplier(client) -> None:
+    for supplier in ["Acme", "Beta Corp"]:
+        data = {
+            "invoice_number": f"INV-{supplier[:3]}",
+            "business_unit": "BU",
+            "supplier": supplier,
+            "invoice_date": "2025-01-01",
+            "invoice_amount": "100.00",
+            "amount_paid": "0.00",
+            "currency": "USD",
+            "payment_status": "UNPAID",
+        }
+        client.post("/api/v1/invoices", json=data)
+
+    resp = client.get("/api/v1/invoices?supplier=Acme")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["items"][0]["supplier"] == "Acme"
+
+
+def test_summary_empty(client) -> None:
+    resp = client.get("/api/v1/summary")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total_invoices"] == 0
+
+
+def test_supplier_ranking_empty(client) -> None:
+    resp = client.get("/api/v1/analytics/supplier-ranking")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_monthly_trend_empty(client) -> None:
+    resp = client.get("/api/v1/analytics/monthly-trend")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_currency_breakdown_empty(client) -> None:
+    resp = client.get("/api/v1/analytics/currency-breakdown")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_overdue_invoices_empty(client) -> None:
+    resp = client.get("/api/v1/analytics/overdue")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_status_distribution_empty(client) -> None:
+    resp = client.get("/api/v1/analytics/status-distribution")
+    assert resp.status_code == 200
+    assert resp.json() == {}
+
+
+def test_create_invoice_invalid_amount(client) -> None:
+    data = {
+        "invoice_number": "INV-BAD",
+        "business_unit": "BU",
+        "supplier": "X",
+        "invoice_date": "2025-01-01",
+        "invoice_amount": "-100.00",
+        "amount_paid": "0.00",
+        "currency": "USD",
+        "payment_status": "UNPAID",
+    }
+    resp = client.post("/api/v1/invoices", json=data)
+    assert resp.status_code == 422
