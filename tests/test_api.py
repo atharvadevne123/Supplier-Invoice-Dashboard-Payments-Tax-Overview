@@ -210,3 +210,16 @@ def test_update_invoice_overpayment_rejected(client, sample_invoice_data) -> Non
     client.post("/api/v1/invoices", json=sample_invoice_data)
     resp = client.patch("/api/v1/invoices/INV-001?amount_paid=99999.00")
     assert resp.status_code == 422
+
+
+def test_delete_invoice_success(client, sample_invoice_data) -> None:
+    client.post("/api/v1/invoices", json=sample_invoice_data)
+    resp = client.delete("/api/v1/invoices/INV-001")
+    assert resp.status_code == 204
+    get_resp = client.get("/api/v1/invoices/INV-001")
+    assert get_resp.status_code == 404
+
+
+def test_delete_invoice_not_found(client) -> None:
+    resp = client.delete("/api/v1/invoices/NONEXISTENT")
+    assert resp.status_code == 404
