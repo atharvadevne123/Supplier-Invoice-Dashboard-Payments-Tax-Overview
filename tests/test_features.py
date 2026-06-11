@@ -1,7 +1,8 @@
 """Tests for feature engineering and computed field calculations."""
 
-import pytest
 from decimal import Decimal
+
+import pytest
 
 from app.features import (
     aggregate_invoices,

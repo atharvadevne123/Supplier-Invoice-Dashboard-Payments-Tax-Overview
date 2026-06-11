@@ -1,8 +1,8 @@
 """Tests for the rate-limiting module."""
 
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
 from fastapi import HTTPException
 
 from app import rate_limit as rl

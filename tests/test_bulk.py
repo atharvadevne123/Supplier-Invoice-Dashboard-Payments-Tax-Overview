@@ -1,10 +1,10 @@
 """Tests for the bulk import parser module."""
 
-import pytest
 from decimal import Decimal
 
-from app.bulk import BulkImportError, parse_csv_invoices, parse_json_invoices
+import pytest
 
+from app.bulk import BulkImportError, parse_csv_invoices, parse_json_invoices
 
 CSV_VALID = """invoice_number,business_unit,supplier,invoice_date,invoice_amount,amount_paid,currency,payment_status
 INV-001,Finance BU,Acme,2025-01-15,1000.00,0.00,USD,UNPAID

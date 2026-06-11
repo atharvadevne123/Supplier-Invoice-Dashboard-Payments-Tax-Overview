@@ -1,8 +1,6 @@
 """Tests for the TTL cache module."""
 
-import time
 
-import pytest
 
 from app.cache import cache_stats, invalidate_all, ttl_cache
 

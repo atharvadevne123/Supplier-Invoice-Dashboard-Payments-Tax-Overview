@@ -1,8 +1,9 @@
 """Tests for domain input validators."""
 
-import pytest
 from datetime import date
 from decimal import Decimal
+
+import pytest
 
 from app.validators import (
     validate_amount_precision,

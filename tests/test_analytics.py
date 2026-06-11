@@ -1,6 +1,5 @@
 """Tests for the analytics module."""
 
-import pytest
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -11,7 +10,6 @@ from app.analytics import (
     payment_status_distribution,
     supplier_outstanding_ranking,
 )
-
 
 SAMPLE_INVOICES = [
     {

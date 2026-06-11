@@ -1,15 +1,15 @@
 """Pytest fixtures for the Supplier Invoice Dashboard test suite."""
 
-import pytest
-from decimal import Decimal
 from datetime import date, timedelta
+from decimal import Decimal
+
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base, SupplierInvoice, get_db
 from app.main import app
-
 
 TEST_DB_URL = "sqlite:///./test_invoices.db"
 

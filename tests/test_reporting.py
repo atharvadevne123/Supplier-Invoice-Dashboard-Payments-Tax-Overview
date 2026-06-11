@@ -5,7 +5,6 @@ from decimal import Decimal
 
 from app.reporting import build_graph_view, build_table_view, build_view_selector_payload
 
-
 INVOICES = [
     {
         "invoice_number": "INV-001",

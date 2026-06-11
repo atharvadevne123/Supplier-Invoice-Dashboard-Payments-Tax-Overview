@@ -18,8 +18,8 @@ from app.analytics import (
 from app.config import settings
 from app.database import SupplierInvoice, create_tables, get_db
 from app.features import aggregate_invoices, compute_outstanding, compute_tax
+from app.middleware import CorrelationIDMiddleware
 from app.schemas import (
-    FilterParams,
     HealthResponse,
     InvoiceCreate,
     InvoiceResponse,
@@ -28,7 +28,6 @@ from app.schemas import (
     PaymentStatus,
 )
 from app.utils import paginate
-from app.middleware import CorrelationIDMiddleware
 
 logger = logging.getLogger(__name__)
 

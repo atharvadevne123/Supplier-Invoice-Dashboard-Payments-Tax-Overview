@@ -1,7 +1,5 @@
 """API integration tests for the Supplier Invoice Dashboard endpoints."""
 
-import pytest
-from decimal import Decimal
 
 
 def test_health_check(client) -> None:

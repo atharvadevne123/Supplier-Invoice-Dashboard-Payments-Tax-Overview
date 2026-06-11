@@ -1,7 +1,8 @@
 """Tests for the currency conversion module."""
 
-import pytest
 from decimal import Decimal
+
+import pytest
 
 from app.currency import convert_amount, get_exchange_rate, normalize_to_usd
 

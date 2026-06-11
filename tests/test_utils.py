@@ -1,7 +1,8 @@
 """Tests for shared utility helpers."""
 
-import pytest
 from decimal import Decimal
+
+import pytest
 
 from app.utils import (
     build_filter_clause,

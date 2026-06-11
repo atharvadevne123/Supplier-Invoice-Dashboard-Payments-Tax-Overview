@@ -6,7 +6,6 @@ import logging
 import os
 import sys
 from datetime import date
-from decimal import Decimal
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 

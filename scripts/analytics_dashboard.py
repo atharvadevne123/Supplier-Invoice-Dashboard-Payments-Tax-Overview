@@ -3,13 +3,11 @@
 import logging
 import os
 import sys
-from decimal import Decimal
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app.analytics import (
     currency_breakdown,
-    monthly_invoice_trend,
     overdue_invoices,
     payment_status_distribution,
     supplier_outstanding_ranking,
