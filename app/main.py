@@ -340,3 +340,37 @@ def get_currency_normalized(db: Session = Depends(get_db)) -> list[dict]:
         for r in records
     ]
     return normalize_to_usd(inv_dicts)
+
+
+@app.patch(
+    f"{settings.api_prefix}/invoices/{{invoice_number}}",
+    response_model=InvoiceResponse,
+    tags=["Invoices"],
+)
+def update_invoice_payment(
+    invoice_number: str,
+    amount_paid: Decimal = Query(..., gt=Decimal("0"), description="New total amount paid"),
+    payment_status: Optional[PaymentStatus] = Query(None),
+    db: Session = Depends(get_db),
+) -> InvoiceResponse:
+    """Update the paid amount and optionally the payment status of an invoice."""
+    inv = db.query(SupplierInvoice).filter(
+        SupplierInvoice.invoice_number == invoice_number
+    ).first()
+    if not inv:
+        raise HTTPException(status_code=404, detail=f"Invoice {invoice_number} not found")
+    if amount_paid > inv.invoice_amount:
+        raise HTTPException(
+            status_code=422, detail="amount_paid cannot exceed invoice_amount"
+        )
+    try:
+        inv.amount_paid = amount_paid
+        if payment_status:
+            inv.payment_status = payment_status.value
+        db.commit()
+        db.refresh(inv)
+    except Exception:
+        db.rollback()
+        logger.exception("Failed to update invoice %s", invoice_number)
+        raise HTTPException(status_code=500, detail="Failed to update invoice")
+    return _to_response(inv)
