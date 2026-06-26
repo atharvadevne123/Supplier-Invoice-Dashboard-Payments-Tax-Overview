@@ -47,3 +47,40 @@ def test_rate_limit_uses_forwarded_for() -> None:
     req.client.host = "10.0.0.1"
     rl.check_rate_limit(req)
     assert "203.0.113.5" in rl._request_counts
+
+
+def test_rate_limit_window_expiry() -> None:
+    import time
+
+    rl._request_counts.clear()
+    old_limit = rl.RATE_LIMIT
+    old_window = rl.WINDOW_SECONDS
+    rl.RATE_LIMIT = 2
+    rl.WINDOW_SECONDS = 1
+    req = _make_request("10.0.0.9")
+    try:
+        rl.check_rate_limit(req)
+        rl.check_rate_limit(req)
+        time.sleep(1.1)
+        rl.check_rate_limit(req)
+        rl.check_rate_limit(req)
+    finally:
+        rl.RATE_LIMIT = old_limit
+        rl.WINDOW_SECONDS = old_window
+        rl._request_counts.clear()
+
+
+def test_rate_limit_different_ips_independent() -> None:
+    rl._request_counts.clear()
+    old_limit = rl.RATE_LIMIT
+    rl.RATE_LIMIT = 2
+    try:
+        req_a = _make_request("10.0.0.10")
+        req_b = _make_request("10.0.0.11")
+        for _ in range(2):
+            rl.check_rate_limit(req_a)
+        for _ in range(2):
+            rl.check_rate_limit(req_b)
+    finally:
+        rl.RATE_LIMIT = old_limit
+        rl._request_counts.clear()
