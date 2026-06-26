@@ -68,6 +68,32 @@ def invalidate_all() -> None:
     logger.info("Cache invalidated: %d entries cleared", count)
 
 
+def get_or_set(key: str, factory: "Callable[[], Any]", ttl_seconds: int = 60) -> Any:
+    """Return a cached value by raw key, computing and caching it if missing or expired.
+
+    Unlike the ``ttl_cache`` decorator, this function works with explicit string keys,
+    making it suitable for dynamic cache operations such as per-request query results.
+
+    Args:
+        key: Unique string key identifying the cached value.
+        factory: Zero-argument callable that computes the value on a cache miss.
+        ttl_seconds: Time-to-live in seconds for the computed value.
+
+    Returns:
+        Cached value (or freshly computed value on a miss).
+    """
+    now = time.monotonic()
+    if key in _cache:
+        value, expires_at = _cache[key]
+        if now < expires_at:
+            logger.debug("Cache hit (raw key): %s", key)
+            return value
+    result = factory()
+    _cache[key] = (result, now + ttl_seconds)
+    logger.debug("Cache set (raw key): %s (ttl=%ds)", key, ttl_seconds)
+    return result
+
+
 def cache_stats() -> dict[str, int]:
     """Return basic cache statistics for the /metrics endpoint.
 
