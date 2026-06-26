@@ -21,13 +21,20 @@ class InvoiceCreate(BaseModel):
     """Schema for creating a new supplier invoice."""
 
     invoice_number: str = Field(..., min_length=1, max_length=50, description="Unique invoice ID")
-    business_unit: str = Field(..., min_length=1, max_length=100)
-    supplier: str = Field(..., min_length=1, max_length=200)
-    invoice_date: date
-    invoice_amount: Decimal = Field(..., gt=Decimal("0"), decimal_places=2)
-    amount_paid: Decimal = Field(default=Decimal("0.00"), ge=Decimal("0"), decimal_places=2)
-    currency: str = Field(default="USD", min_length=3, max_length=10)
-    payment_status: PaymentStatus = PaymentStatus.UNPAID
+    business_unit: str = Field(..., min_length=1, max_length=100, description="Owning business unit")
+    supplier: str = Field(..., min_length=1, max_length=200, description="Supplier name")
+    invoice_date: date = Field(..., description="Date the invoice was issued")
+    invoice_amount: Decimal = Field(
+        ..., gt=Decimal("0"), decimal_places=2, description="Gross invoice amount"
+    )
+    amount_paid: Decimal = Field(
+        default=Decimal("0.00"),
+        ge=Decimal("0"),
+        decimal_places=2,
+        description="Amount already paid against this invoice",
+    )
+    currency: str = Field(default="USD", min_length=3, max_length=10, description="ISO 4217 currency code")
+    payment_status: PaymentStatus = Field(default=PaymentStatus.UNPAID, description="Current payment status")
 
     @field_validator("amount_paid")
     @classmethod
@@ -37,6 +44,20 @@ class InvoiceCreate(BaseModel):
         if amount is not None and v > amount:
             raise ValueError("amount_paid cannot exceed invoice_amount")
         return v
+
+
+class InvoiceUpdate(BaseModel):
+    """Schema for partially updating an existing invoice's payment fields.
+
+    All fields are optional; only supplied fields are applied.
+    """
+
+    amount_paid: Optional[Decimal] = Field(
+        default=None, ge=Decimal("0"), decimal_places=2, description="Updated amount paid"
+    )
+    payment_status: Optional[PaymentStatus] = Field(
+        default=None, description="Updated payment status"
+    )
 
 
 class InvoiceResponse(BaseModel):
@@ -96,3 +117,12 @@ class FilterParams(BaseModel):
     date_from: Optional[date] = None
     date_to: Optional[date] = None
     currency: Optional[str] = None
+
+
+class BulkImportResponse(BaseModel):
+    """Response returned after a bulk CSV/JSON import operation."""
+
+    imported_count: int = Field(..., description="Number of records successfully imported")
+    skipped_count: int = Field(default=0, description="Number of records skipped due to duplicates")
+    error_count: int = Field(default=0, description="Number of records that failed validation")
+    errors: list[str] = Field(default_factory=list, description="Descriptions of per-row errors")
