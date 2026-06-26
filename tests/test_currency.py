@@ -45,3 +45,44 @@ def test_normalize_unknown_currency_passthrough() -> None:
     invoices = [{"invoice_amount": Decimal("500.00"), "currency": "XYZ"}]
     result = normalize_to_usd(invoices)
     assert result[0]["invoice_amount_usd"] == Decimal("500.00")
+
+
+@pytest.mark.parametrize("currency", ["CNY", "SGD", "MXN"])
+def test_new_currencies_supported(currency: str) -> None:
+    from app.currency import convert_amount
+
+    result = convert_amount(Decimal("100.00"), currency, "USD")
+    assert result is not None
+
+
+def test_list_supported_currencies_includes_cny() -> None:
+    from app.currency import list_supported_currencies
+
+    currencies = list_supported_currencies()
+    assert "CNY" in currencies
+    assert "SGD" in currencies
+    assert "MXN" in currencies
+
+
+def test_list_supported_currencies_is_sorted() -> None:
+    from app.currency import list_supported_currencies
+
+    currencies = list_supported_currencies()
+    assert currencies == sorted(currencies)
+
+
+def test_normalize_amount_list() -> None:
+    from app.currency import normalize_amount_list
+
+    pairs = [(Decimal("100.00"), "USD"), (Decimal("100.00"), "EUR")]
+    results = normalize_amount_list(pairs, to_currency="USD")
+    assert results[0] == Decimal("100.00")
+    assert results[1] is not None
+
+
+def test_normalize_amount_list_unknown_currency() -> None:
+    from app.currency import normalize_amount_list
+
+    pairs = [(Decimal("100.00"), "XYZ")]
+    results = normalize_amount_list(pairs)
+    assert results[0] is None
