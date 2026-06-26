@@ -136,6 +136,30 @@ def build_payment_summary(invoices: list[dict]) -> dict[str, Any]:
     }
 
 
+def build_overdue_report(invoices: list[dict], threshold_days: int = 30) -> dict[str, Any]:
+    """Build a structured overdue-invoice report payload.
+
+    Args:
+        invoices: List of invoice dicts with all standard fields.
+        threshold_days: Minimum age in days to classify as overdue.
+
+    Returns:
+        Dict with overdue_count, total_overdue_amount, and rows keys.
+    """
+    from app.analytics import overdue_invoices
+
+    overdue = overdue_invoices(invoices, threshold_days=threshold_days)
+    total_overdue_amount = sum(
+        (compute_outstanding(inv["invoice_amount"], inv["amount_paid"]) for inv in overdue),
+        DECIMAL_ZERO,
+    )
+    return {
+        "overdue_count": len(overdue),
+        "total_overdue_amount": total_overdue_amount,
+        "rows": overdue,
+    }
+
+
 def build_view_selector_payload(invoices: list[dict]) -> dict[str, Any]:
     """Return both table and graph views in a single payload for the view-selector UI.
 
