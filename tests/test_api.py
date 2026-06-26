@@ -232,6 +232,62 @@ def test_currency_normalized_endpoint(client, sample_invoice_data) -> None:
     assert "invoice_amount_usd" in data[0]
 
 
+def test_list_invoices_filter_by_date_from(client) -> None:
+    for inv_date in ["2025-01-01", "2025-03-01", "2025-06-01"]:
+        idx = inv_date.replace("-", "")
+        data = {
+            "invoice_number": f"DATE-{idx}",
+            "business_unit": "BU",
+            "supplier": "Supplier",
+            "invoice_date": inv_date,
+            "invoice_amount": "100.00",
+            "amount_paid": "0.00",
+            "currency": "USD",
+            "payment_status": "UNPAID",
+        }
+        client.post("/api/v1/invoices", json=data)
+
+    resp = client.get("/api/v1/invoices?date_from=2025-03-01")
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 2
+
+
+def test_list_invoices_filter_by_date_to(client) -> None:
+    for inv_date in ["2025-01-01", "2025-03-01", "2025-06-01"]:
+        idx = inv_date.replace("-", "")
+        data = {
+            "invoice_number": f"DTO-{idx}",
+            "business_unit": "BU",
+            "supplier": "Vendor",
+            "invoice_date": inv_date,
+            "invoice_amount": "100.00",
+            "amount_paid": "0.00",
+            "currency": "USD",
+            "payment_status": "UNPAID",
+        }
+        client.post("/api/v1/invoices", json=data)
+
+    resp = client.get("/api/v1/invoices?date_to=2025-03-01")
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 2
+
+
+def test_summary_includes_cancelled_count(client) -> None:
+    data = {
+        "invoice_number": "CAN-001",
+        "business_unit": "BU",
+        "supplier": "X",
+        "invoice_date": "2025-01-01",
+        "invoice_amount": "100.00",
+        "amount_paid": "0.00",
+        "currency": "USD",
+        "payment_status": "CANCELLED",
+    }
+    client.post("/api/v1/invoices", json=data)
+    resp = client.get("/api/v1/summary")
+    assert resp.status_code == 200
+
+
 def test_summary_with_supplier_filter(client) -> None:
     for i, supplier in enumerate(["Acme", "Beta"]):
         data = {
