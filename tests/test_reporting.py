@@ -78,3 +78,63 @@ def test_build_graph_view_empty() -> None:
     graph = build_graph_view([])
     assert graph["total_invoices"] == 0
     assert all(s["value"] == Decimal("0") for s in graph["series"])
+
+
+def test_graph_view_series_count() -> None:
+    graph = build_graph_view(INVOICES)
+    assert len(graph["series"]) == 4
+
+
+def test_build_summary_cards_count() -> None:
+    from app.reporting import build_summary_cards
+
+    cards = build_summary_cards(INVOICES)
+    assert len(cards) == 4
+
+
+def test_build_summary_cards_labels() -> None:
+    from app.reporting import build_summary_cards
+
+    cards = build_summary_cards(INVOICES)
+    labels = {c["label"] for c in cards}
+    assert "Total Invoices" in labels
+    assert "Total Amount" in labels
+    assert "Total Paid" in labels
+    assert "Total Outstanding" in labels
+
+
+def test_build_summary_cards_total_invoices() -> None:
+    from app.reporting import build_summary_cards
+
+    cards = build_summary_cards(INVOICES)
+    total_card = next(c for c in cards if c["label"] == "Total Invoices")
+    assert total_card["value"] == 2
+
+
+def test_build_summary_cards_empty() -> None:
+    from app.reporting import build_summary_cards
+
+    cards = build_summary_cards([])
+    total_card = next(c for c in cards if c["label"] == "Total Invoices")
+    assert total_card["value"] == 0
+
+
+def test_build_payment_summary_completion_pct() -> None:
+    from app.reporting import build_payment_summary
+
+    invoices = [
+        {"payment_status": "PAID", "invoice_amount": Decimal("1000"), "amount_paid": Decimal("1000")},
+        {"payment_status": "PAID", "invoice_amount": Decimal("500"), "amount_paid": Decimal("500")},
+        {"payment_status": "UNPAID", "invoice_amount": Decimal("200"), "amount_paid": Decimal("0")},
+        {"payment_status": "UNPAID", "invoice_amount": Decimal("300"), "amount_paid": Decimal("0")},
+    ]
+    summary = build_payment_summary(invoices)
+    assert summary["payment_completion_pct"] == 50.0
+
+
+def test_build_payment_summary_empty() -> None:
+    from app.reporting import build_payment_summary
+
+    summary = build_payment_summary([])
+    assert summary["total_invoices"] == 0
+    assert summary["payment_completion_pct"] == 0.0
