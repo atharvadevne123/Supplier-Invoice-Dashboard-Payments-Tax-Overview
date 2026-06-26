@@ -95,3 +95,51 @@ def test_cache_stats_live_entries_excludes_expired() -> None:
 def test_invalidate_all_returns_none() -> None:
     result = invalidate_all()
     assert result is None
+
+
+def test_get_or_set_cache_miss_calls_factory() -> None:
+    from app.cache import get_or_set, invalidate_all
+
+    invalidate_all()
+    call_count = 0
+
+    def factory():
+        nonlocal call_count
+        call_count += 1
+        return 42
+
+    result = get_or_set("test-key-1", factory, ttl_seconds=60)
+    assert result == 42
+    assert call_count == 1
+
+
+def test_get_or_set_cache_hit_skips_factory() -> None:
+    from app.cache import get_or_set, invalidate_all
+
+    invalidate_all()
+    call_count = 0
+
+    def factory():
+        nonlocal call_count
+        call_count += 1
+        return 99
+
+    get_or_set("test-key-2", factory, ttl_seconds=60)
+    get_or_set("test-key-2", factory, ttl_seconds=60)
+    assert call_count == 1
+
+
+def test_get_or_set_different_keys_call_factory_separately() -> None:
+    from app.cache import get_or_set, invalidate_all
+
+    invalidate_all()
+    call_count = 0
+
+    def factory():
+        nonlocal call_count
+        call_count += 1
+        return call_count
+
+    get_or_set("key-a", factory)
+    get_or_set("key-b", factory)
+    assert call_count == 2
