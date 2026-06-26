@@ -109,6 +109,42 @@ def currency_breakdown(invoices: list[dict]) -> list[dict]:
     ]
 
 
+def average_invoice_amount(invoices: list[dict]) -> Decimal:
+    """Return the mean invoice amount across all invoices.
+
+    Args:
+        invoices: List of invoice dicts with invoice_amount field.
+
+    Returns:
+        Mean invoice amount rounded to 2 decimal places; Decimal("0") if empty.
+    """
+    if not invoices:
+        return Decimal("0")
+    total = sum((inv["invoice_amount"] for inv in invoices), Decimal("0"))
+    return (total / len(invoices)).quantize(Decimal("0.01"))
+
+
+def average_days_to_pay(invoices: list[dict], as_of: Optional[date] = None) -> float:
+    """Return the mean age (in days) of invoices that are fully paid.
+
+    Only PAID invoices are included in the average; invoices without a
+    payment_date field use the invoice_date as the baseline.
+
+    Args:
+        invoices: List of invoice dicts with invoice_date and payment_status.
+        as_of: Reference date for age calculation (defaults to today).
+
+    Returns:
+        Average days to pay rounded to 1 decimal place; 0.0 if no paid invoices.
+    """
+    reference = as_of or date.today()
+    paid = [inv for inv in invoices if inv.get("payment_status") == "PAID"]
+    if not paid:
+        return 0.0
+    total_days = sum((reference - inv["invoice_date"]).days for inv in paid)
+    return round(total_days / len(paid), 1)
+
+
 def incomplete_invoice_count(invoices: list[dict]) -> int:
     """Count invoices that are not fully paid (UNPAID or PARTIAL).
 
