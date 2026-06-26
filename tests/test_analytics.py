@@ -242,3 +242,45 @@ def test_overdue_by_supplier_excludes_paid() -> None:
         }
     ]
     assert overdue_by_supplier(invoices) == []
+
+
+def test_average_invoice_amount() -> None:
+    from app.analytics import average_invoice_amount
+
+    invoices = [
+        {"invoice_amount": Decimal("1000.00")},
+        {"invoice_amount": Decimal("2000.00")},
+        {"invoice_amount": Decimal("3000.00")},
+    ]
+    avg = average_invoice_amount(invoices)
+    assert avg == Decimal("2000.00")
+
+
+def test_average_invoice_amount_empty() -> None:
+    from app.analytics import average_invoice_amount
+
+    assert average_invoice_amount([]) == Decimal("0")
+
+
+def test_average_days_to_pay_no_paid() -> None:
+    from app.analytics import average_days_to_pay
+
+    invoices = [
+        {
+            "invoice_date": date(2025, 1, 1),
+            "payment_status": "UNPAID",
+        }
+    ]
+    assert average_days_to_pay(invoices) == 0.0
+
+
+def test_average_days_to_pay_with_paid() -> None:
+    from app.analytics import average_days_to_pay
+
+    ref = date(2025, 4, 1)
+    invoices = [
+        {"invoice_date": date(2025, 1, 1), "payment_status": "PAID"},
+        {"invoice_date": date(2025, 2, 1), "payment_status": "PAID"},
+    ]
+    avg = average_days_to_pay(invoices, as_of=ref)
+    assert avg > 0.0
