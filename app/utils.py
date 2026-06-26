@@ -9,6 +9,10 @@ T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_PAGE_SIZE: int = 20
+MAX_PAGE_SIZE: int = 200
+MAX_TRUNCATE_LENGTH: int = 255
+
 
 def paginate(
     items: list[T],
@@ -28,7 +32,7 @@ def paginate(
     if page < 1:
         page = 1
     if page_size < 1:
-        page_size = 10
+        page_size = DEFAULT_PAGE_SIZE
     total = len(items)
     total_pages = max(1, math.ceil(total / page_size))
     start = (page - 1) * page_size
@@ -37,7 +41,14 @@ def paginate(
 
 
 def sanitize_string(value: Optional[str]) -> Optional[str]:
-    """Strip leading/trailing whitespace and return None for blank strings."""
+    """Strip leading/trailing whitespace and return None for blank strings.
+
+    Args:
+        value: String to sanitize, or None.
+
+    Returns:
+        Stripped string, or None if blank or None.
+    """
     if value is None:
         return None
     stripped = value.strip()
@@ -45,24 +56,84 @@ def sanitize_string(value: Optional[str]) -> Optional[str]:
 
 
 def round_decimal(value: Decimal, places: int = 2) -> Decimal:
-    """Round a Decimal to the given number of decimal places."""
+    """Round a Decimal to the given number of decimal places.
+
+    Args:
+        value: Decimal value to round.
+        places: Number of decimal places (default 2).
+
+    Returns:
+        Rounded Decimal.
+    """
     quantizer = Decimal(10) ** -places
     return value.quantize(quantizer)
 
 
 def format_currency(amount: Decimal, currency: str = "USD") -> str:
-    """Return a human-readable currency string."""
+    """Return a human-readable currency string.
+
+    Args:
+        amount: Decimal amount to format.
+        currency: ISO 4217 currency code (default "USD").
+
+    Returns:
+        Formatted string, e.g. "USD 1,234.56".
+    """
     return f"{currency} {amount:,.2f}"
 
 
 def build_filter_clause(filters: dict[str, Any]) -> dict[str, Any]:
-    """Remove None-valued entries from a filter dict for cleaner query building."""
+    """Remove None-valued entries from a filter dict for cleaner query building.
+
+    Args:
+        filters: Dict of field -> value pairs, possibly containing None values.
+
+    Returns:
+        Copy of filters with all None values removed.
+    """
     return {k: v for k, v in filters.items() if v is not None}
 
 
 def safe_divide(numerator: Decimal, denominator: Decimal) -> Decimal:
-    """Return numerator / denominator, or Decimal('0') when denominator is zero."""
+    """Return numerator / denominator, or Decimal('0') when denominator is zero.
+
+    Args:
+        numerator: Dividend.
+        denominator: Divisor.
+
+    Returns:
+        Quotient, or Decimal("0") if denominator is zero.
+    """
     if denominator == Decimal("0"):
         logger.debug("safe_divide: denominator is zero, returning 0")
         return Decimal("0")
     return numerator / denominator
+
+
+def clamp(value: int, minimum: int, maximum: int) -> int:
+    """Return value clamped to the inclusive [minimum, maximum] range.
+
+    Args:
+        value: Integer to clamp.
+        minimum: Lower bound (inclusive).
+        maximum: Upper bound (inclusive).
+
+    Returns:
+        Value clamped to [minimum, maximum].
+    """
+    return max(minimum, min(value, maximum))
+
+
+def truncate_string(value: str, max_length: int = MAX_TRUNCATE_LENGTH) -> str:
+    """Truncate a string to max_length characters, appending '...' when cut.
+
+    Args:
+        value: String to truncate.
+        max_length: Maximum allowed length (must be >= 3).
+
+    Returns:
+        Original string if within limit; otherwise truncated with '...' suffix.
+    """
+    if len(value) <= max_length:
+        return value
+    return value[: max(0, max_length - 3)] + "..."
