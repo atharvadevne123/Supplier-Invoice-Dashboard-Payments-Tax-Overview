@@ -94,6 +94,39 @@ def apply_conditional_formatting(outstanding: Decimal, invoice_amount: Decimal) 
     return "red"
 
 
+def compute_payment_ratio(invoice_amount: Decimal, amount_paid: Decimal) -> Decimal:
+    """Return the fraction of the invoice that has been paid (0.0 – 1.0).
+
+    Args:
+        invoice_amount: Gross invoice amount.
+        amount_paid: Amount already paid.
+
+    Returns:
+        Payment ratio rounded to 4 decimal places; 0 when invoice_amount is zero.
+    """
+    if invoice_amount <= DECIMAL_ZERO:
+        return DECIMAL_ZERO
+    ratio = (amount_paid / invoice_amount).quantize(Decimal("0.0001"))
+    return min(ratio, Decimal("1.0000"))
+
+
+def invoice_age_days(invoice_date: object, as_of: object = None) -> int:
+    """Return the number of days since the invoice date.
+
+    Args:
+        invoice_date: datetime.date of the invoice.
+        as_of: Reference date (defaults to today).
+
+    Returns:
+        Age in days (non-negative integer).
+    """
+    from datetime import date
+
+    ref: date = as_of or date.today()
+    delta = ref - invoice_date  # type: ignore[operator]
+    return max(0, delta.days)
+
+
 def aggregate_invoices(invoices: list[dict]) -> dict[str, object]:
     """Compute summary statistics across a list of invoice dicts.
 
@@ -116,6 +149,7 @@ def aggregate_invoices(invoices: list[dict]) -> dict[str, object]:
     paid_count = sum(1 for inv in invoices if inv.get("payment_status") == "PAID")
     unpaid_count = sum(1 for inv in invoices if inv.get("payment_status") == "UNPAID")
     partial_count = sum(1 for inv in invoices if inv.get("payment_status") == "PARTIAL")
+    cancelled_count = sum(1 for inv in invoices if inv.get("payment_status") == "CANCELLED")
 
     logger.debug("Aggregated %d invoices; total_outstanding=%s", total_invoices, total_outstanding)
     return {
@@ -127,4 +161,5 @@ def aggregate_invoices(invoices: list[dict]) -> dict[str, object]:
         "paid_count": paid_count,
         "unpaid_count": unpaid_count,
         "partial_count": partial_count,
+        "cancelled_count": cancelled_count,
     }
