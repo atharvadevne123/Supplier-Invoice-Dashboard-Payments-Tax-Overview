@@ -20,7 +20,7 @@ def test_parse_csv_valid() -> None:
 
 def test_parse_csv_missing_column() -> None:
     bad_csv = "invoice_number,supplier\nINV-001,Acme"
-    with pytest.raises(BulkImportError, match="missing columns"):
+    with pytest.raises(BulkImportError, match="missing required columns"):
         parse_csv_invoices(bad_csv)
 
 
