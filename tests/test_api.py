@@ -288,6 +288,19 @@ def test_summary_includes_cancelled_count(client) -> None:
     assert resp.status_code == 200
 
 
+def test_incomplete_count_endpoint(client) -> None:
+    resp = client.get("/api/v1/analytics/incomplete-count")
+    assert resp.status_code == 200
+    assert "incomplete_count" in resp.json()
+
+
+def test_incomplete_count_with_data(client, sample_invoice_data) -> None:
+    client.post("/api/v1/invoices", json=sample_invoice_data)
+    resp = client.get("/api/v1/analytics/incomplete-count")
+    assert resp.status_code == 200
+    assert resp.json()["incomplete_count"] == 1
+
+
 def test_summary_with_supplier_filter(client) -> None:
     for i, supplier in enumerate(["Acme", "Beta"]):
         data = {
