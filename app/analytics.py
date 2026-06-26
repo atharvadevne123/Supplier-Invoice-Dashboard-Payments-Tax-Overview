@@ -109,6 +109,81 @@ def currency_breakdown(invoices: list[dict]) -> list[dict]:
     ]
 
 
+def incomplete_invoice_count(invoices: list[dict]) -> int:
+    """Count invoices that are not fully paid (UNPAID or PARTIAL).
+
+    Args:
+        invoices: List of invoice dicts with payment_status field.
+
+    Returns:
+        Count of invoices in INCOMPLETE_STATUSES.
+    """
+    return sum(1 for inv in invoices if inv.get("payment_status") in INCOMPLETE_STATUSES)
+
+
+def top_currencies_by_invoice_count(
+    invoices: list[dict], top_n: int = 5
+) -> list[dict]:
+    """Return currencies ranked by number of invoices, highest first.
+
+    Args:
+        invoices: List of invoice dicts with currency field.
+        top_n: Maximum number of currencies to return.
+
+    Returns:
+        List of dicts with currency and count keys, sorted by count descending.
+    """
+    if not invoices:
+        return []
+    counts: dict[str, int] = defaultdict(int)
+    for inv in invoices:
+        counts[inv.get("currency", "USD")] += 1
+    ranked = sorted(counts.items(), key=lambda x: x[1], reverse=True)
+    return [{"currency": c, "count": n} for c, n in ranked[:top_n]]
+
+
+def overdue_by_supplier(
+    invoices: list[dict],
+    as_of: Optional[date] = None,
+    threshold_days: int = OVERDUE_DAYS_THRESHOLD,
+) -> list[dict]:
+    """Aggregate overdue invoice amounts grouped by supplier.
+
+    Args:
+        invoices: List of invoice dicts with supplier, payment_status, invoice_date,
+                  invoice_amount, and amount_paid.
+        as_of: Reference date (defaults to today).
+        threshold_days: Minimum age in days to classify as overdue.
+
+    Returns:
+        List of dicts with supplier, overdue_count, and total_outstanding,
+        sorted by total_outstanding descending.
+    """
+    if not invoices:
+        return []
+    reference = as_of or date.today()
+    supplier_totals: dict[str, dict] = defaultdict(
+        lambda: {"overdue_count": 0, "total_outstanding": Decimal("0")}
+    )
+    for inv in invoices:
+        if inv.get("payment_status") not in INCOMPLETE_STATUSES:
+            continue
+        age_days = (reference - inv["invoice_date"]).days
+        if age_days <= threshold_days:
+            continue
+        supplier = inv.get("supplier", "Unknown")
+        outstanding = compute_outstanding(inv["invoice_amount"], inv["amount_paid"])
+        supplier_totals[supplier]["overdue_count"] += 1
+        supplier_totals[supplier]["total_outstanding"] += outstanding
+
+    result = [
+        {"supplier": supplier, **data}
+        for supplier, data in supplier_totals.items()
+    ]
+    result.sort(key=lambda x: x["total_outstanding"], reverse=True)
+    return result
+
+
 def overdue_invoices(
     invoices: list[dict],
     as_of: Optional[date] = None,
