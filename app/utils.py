@@ -124,6 +124,21 @@ def clamp(value: int, minimum: int, maximum: int) -> int:
     return max(minimum, min(value, maximum))
 
 
+def chunk_list(items: list[Any], chunk_size: int) -> list[list[Any]]:
+    """Split a list into fixed-size chunks (last chunk may be smaller).
+
+    Args:
+        items: List to split.
+        chunk_size: Maximum number of items per chunk.
+
+    Returns:
+        List of sub-lists, each of at most chunk_size elements.
+    """
+    if chunk_size < 1:
+        chunk_size = 1
+    return [items[i : i + chunk_size] for i in range(0, len(items), chunk_size)]
+
+
 def truncate_string(value: str, max_length: int = MAX_TRUNCATE_LENGTH) -> str:
     """Truncate a string to max_length characters, appending '...' when cut.
 
