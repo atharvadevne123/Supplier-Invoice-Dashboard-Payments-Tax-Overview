@@ -67,6 +67,46 @@ def parse_csv_invoices(csv_content: str) -> list[dict[str, Any]]:
     return rows
 
 
+def validate_csv_row(row: dict[str, Any], row_index: int) -> list[str]:
+    """Run basic domain validation on a parsed CSV row.
+
+    Args:
+        row: Invoice dict from parse_csv_invoices with normalized keys.
+        row_index: 1-based row index used in error messages.
+
+    Returns:
+        List of error strings (empty if the row is valid).
+    """
+    errors: list[str] = []
+    from decimal import Decimal as _D
+    invoice_amount = row.get("invoice_amount")
+    amount_paid = row.get("amount_paid")
+    if isinstance(invoice_amount, _D) and invoice_amount <= _D("0"):
+        errors.append(f"Row {row_index}: invoice_amount must be greater than zero")
+    if isinstance(amount_paid, _D) and isinstance(invoice_amount, _D):
+        if amount_paid < _D("0"):
+            errors.append(f"Row {row_index}: amount_paid must not be negative")
+        elif amount_paid > invoice_amount:
+            errors.append(f"Row {row_index}: amount_paid cannot exceed invoice_amount")
+    return errors
+
+
+def merge_invoice_dicts(base: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:
+    """Merge update fields into base, skipping keys with None values.
+
+    Useful for applying partial updates from bulk imports without
+    overwriting existing values with missing fields.
+
+    Args:
+        base: Existing invoice dict.
+        update: Partial dict of fields to apply.
+
+    Returns:
+        New dict with update values applied over base.
+    """
+    return {**base, **{k: v for k, v in update.items() if v is not None}}
+
+
 def parse_json_invoices(json_content: str) -> list[dict[str, Any]]:
     """Parse a JSON string (list of objects) into a list of invoice dicts.
 
