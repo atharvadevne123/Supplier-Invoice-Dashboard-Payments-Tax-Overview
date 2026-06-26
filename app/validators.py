@@ -141,6 +141,27 @@ def validate_non_empty_string(value: str, field_name: str = "field") -> str:
     return stripped
 
 
+def validate_supplier_name(supplier: str, max_length: int = 200) -> str:
+    """Raise ValueError if the supplier name is empty or too long.
+
+    Args:
+        supplier: Raw supplier name string.
+        max_length: Maximum allowed character length (default 200).
+
+    Returns:
+        Stripped supplier name.
+
+    Raises:
+        ValueError: If the name is blank or exceeds max_length.
+    """
+    stripped = supplier.strip()
+    if not stripped:
+        raise ValueError("supplier name must not be empty")
+    if len(stripped) > max_length:
+        raise ValueError(f"supplier name exceeds maximum length of {max_length}")
+    return stripped
+
+
 def validate_business_unit(business_unit: str) -> str:
     """Raise ValueError if business unit contains disallowed characters.
 
