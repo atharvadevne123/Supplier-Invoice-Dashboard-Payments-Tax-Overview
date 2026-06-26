@@ -1,4 +1,10 @@
-"""Alembic migration environment configuration."""
+"""Alembic migration environment configuration.
+
+This module configures the Alembic runtime context for both online
+(direct DB connection) and offline (SQL script generation) migration modes.
+It attaches the application's declarative metadata so Alembic can generate
+auto-migrations from ORM model changes.
+"""
 
 from logging.config import fileConfig
 
@@ -15,7 +21,11 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    """Run migrations without an active DB connection."""
+    """Run migrations in offline mode without an active database connection.
+
+    Generates SQL statements to stdout or a file instead of executing them.
+    Useful for review workflows where DDL must be approved before execution.
+    """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -28,7 +38,11 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations with a live DB connection."""
+    """Run migrations in online mode against a live database connection.
+
+    Uses NullPool to avoid connection pooling during migrations, which is
+    safer for long-running DDL operations.
+    """
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
