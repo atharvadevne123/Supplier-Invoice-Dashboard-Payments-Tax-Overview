@@ -6,6 +6,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.analytics import (
@@ -80,7 +81,7 @@ def _to_response(inv: SupplierInvoice) -> InvoiceResponse:
 def health_check(db: Session = Depends(get_db)) -> HealthResponse:
     """Return API liveness and database connectivity status."""
     try:
-        db.execute(__import__("sqlalchemy").text("SELECT 1"))
+        db.execute(text("SELECT 1"))
         db_status = "connected"
     except Exception:
         logger.exception("Database health check failed")
