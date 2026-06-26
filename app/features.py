@@ -94,6 +94,31 @@ def apply_conditional_formatting(outstanding: Decimal, invoice_amount: Decimal) 
     return "red"
 
 
+INVOICE_SIZE_SMALL_THRESHOLD: Decimal = Decimal("1000.00")
+INVOICE_SIZE_LARGE_THRESHOLD: Decimal = Decimal("10000.00")
+
+
+def classify_invoice_size(invoice_amount: Decimal) -> str:
+    """Classify an invoice by amount into small, medium, or large.
+
+    Thresholds:
+    - small:  amount <  1,000
+    - medium: 1,000 <= amount < 10,000
+    - large:  amount >= 10,000
+
+    Args:
+        invoice_amount: Gross invoice amount.
+
+    Returns:
+        Size label: "small", "medium", or "large".
+    """
+    if invoice_amount < INVOICE_SIZE_SMALL_THRESHOLD:
+        return "small"
+    if invoice_amount < INVOICE_SIZE_LARGE_THRESHOLD:
+        return "medium"
+    return "large"
+
+
 def compute_payment_ratio(invoice_amount: Decimal, amount_paid: Decimal) -> Decimal:
     """Return the fraction of the invoice that has been paid (0.0 – 1.0).
 
