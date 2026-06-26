@@ -23,16 +23,34 @@ SUPPLIERS = [
     "Delta Manufacturing Co",
     "Epsilon Software Inc",
     "Zeta Consulting Group",
+    "Eta Procurement Services",
+    "Theta Global Trading",
+    "Iota Infrastructure LLC",
+    "Kappa Engineering Works",
 ]
 
-BUSINESS_UNITS = ["Finance BU", "Operations BU", "IT Department", "Procurement"]
-CURRENCIES = ["USD", "EUR", "GBP", "CAD"]
+BUSINESS_UNITS = [
+    "Finance BU",
+    "Operations BU",
+    "IT Department",
+    "Procurement",
+    "Legal & Compliance",
+    "Human Resources",
+]
+CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "CHF"]
 STATUSES = ["PAID", "UNPAID", "PARTIAL", "CANCELLED"]
 STATUS_WEIGHTS = [0.45, 0.30, 0.20, 0.05]
 
 
 def _random_invoice(index: int) -> SupplierInvoice:
-    """Generate a single randomised SupplierInvoice record."""
+    """Generate a single randomised SupplierInvoice record.
+
+    Args:
+        index: Sequential invoice index used to build the invoice number.
+
+    Returns:
+        Unsaved SupplierInvoice ORM instance.
+    """
     invoice_amount = Decimal(str(round(random.uniform(500, 50000), 2)))
     status = random.choices(STATUSES, weights=STATUS_WEIGHTS)[0]
     amount_paid: Decimal
@@ -57,7 +75,13 @@ def _random_invoice(index: int) -> SupplierInvoice:
 
 
 def seed(count: int = 100) -> None:
-    """Insert `count` sample invoices into the database."""
+    """Insert ``count`` sample invoices into the database.
+
+    Skips seeding if the database already contains any records.
+
+    Args:
+        count: Number of sample invoices to insert (default 100).
+    """
     create_tables()
     db: Session = SessionLocal()
     try:
