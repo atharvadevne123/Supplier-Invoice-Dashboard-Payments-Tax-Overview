@@ -138,3 +138,44 @@ def test_build_payment_summary_empty() -> None:
     summary = build_payment_summary([])
     assert summary["total_invoices"] == 0
     assert summary["payment_completion_pct"] == 0.0
+
+
+def test_build_overdue_report_keys() -> None:
+    from datetime import date, timedelta
+
+    from app.reporting import build_overdue_report
+
+    old_invoices = [
+        {
+            "invoice_number": "INV-OLD",
+            "supplier": "X",
+            "invoice_date": date.today() - timedelta(days=60),
+            "invoice_amount": Decimal("1000.00"),
+            "amount_paid": Decimal("0.00"),
+            "payment_status": "UNPAID",
+        }
+    ]
+    report = build_overdue_report(old_invoices)
+    assert "overdue_count" in report
+    assert "total_overdue_amount" in report
+    assert "rows" in report
+
+
+def test_build_overdue_report_count() -> None:
+    from datetime import date, timedelta
+
+    from app.reporting import build_overdue_report
+
+    invoices = [
+        {
+            "invoice_number": f"INV-{i}",
+            "supplier": "Vendor",
+            "invoice_date": date.today() - timedelta(days=60),
+            "invoice_amount": Decimal("500.00"),
+            "amount_paid": Decimal("0.00"),
+            "payment_status": "UNPAID",
+        }
+        for i in range(3)
+    ]
+    report = build_overdue_report(invoices)
+    assert report["overdue_count"] == 3
