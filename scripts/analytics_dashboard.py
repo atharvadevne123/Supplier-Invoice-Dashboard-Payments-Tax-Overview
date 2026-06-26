@@ -15,20 +15,25 @@ from app.analytics import (
 from app.database import SessionLocal, SupplierInvoice, create_tables
 from app.features import aggregate_invoices
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-8s  %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 logger = logging.getLogger(__name__)
+
+_SEPARATOR = "=" * 60
 
 
 def _section(title: str) -> None:
-    """Print a formatted section header."""
-    width = 60
-    print(f"\n{'=' * width}")
-    print(f"  {title}")
-    print(f"{'=' * width}")
+    """Log a formatted section header at INFO level."""
+    logger.info(_SEPARATOR)
+    logger.info("  %s", title)
+    logger.info(_SEPARATOR)
 
 
 def run_dashboard() -> None:
-    """Fetch all invoices and print analytics to stdout."""
+    """Fetch all invoices and log analytics to the configured handler."""
     create_tables()
     db = SessionLocal()
     try:
@@ -49,33 +54,42 @@ def run_dashboard() -> None:
         _section("INVOICE SUMMARY")
         agg = aggregate_invoices(inv_dicts)
         for key, val in agg.items():
-            print(f"  {key:30s}: {val}")
+            logger.info("  %-30s: %s", key, val)
 
         _section("PAYMENT STATUS DISTRIBUTION")
         dist = payment_status_distribution(inv_dicts)
         for status, count in sorted(dist.items()):
-            print(f"  {status:20s}: {count}")
+            logger.info("  %-20s: %d", status, count)
 
         _section("TOP 10 SUPPLIERS BY OUTSTANDING")
         ranking = supplier_outstanding_ranking(inv_dicts)[:10]
         for i, entry in enumerate(ranking, 1):
-            print(f"  {i:2d}. {entry['supplier'][:40]:40s}  {entry['total_outstanding']:>12,.2f}")
+            logger.info(
+                "  %2d. %-40s  %12,.2f",
+                i,
+                entry["supplier"][:40],
+                entry["total_outstanding"],
+            )
 
         _section("CURRENCY BREAKDOWN")
         for entry in currency_breakdown(inv_dicts):
-            print(f"  {entry['currency']:5s}: {entry['total_amount']:>14,.2f}")
+            logger.info("  %-5s: %14,.2f", entry["currency"], entry["total_amount"])
 
         _section("OVERDUE INVOICES (>30 days)")
         overdue = overdue_invoices(inv_dicts)
         if overdue:
             for inv in overdue[:10]:
-                print(
-                    f"  {inv['invoice_number']:15s}  {inv['supplier'][:30]:30s}"
-                    f"  {inv['age_days']:4d} days  {inv['invoice_amount']:>12,.2f}"
+                logger.info(
+                    "  %-15s  %-30s  %4d days  %12,.2f",
+                    inv["invoice_number"],
+                    inv["supplier"][:30],
+                    inv["age_days"],
+                    inv["invoice_amount"],
                 )
         else:
-            print("  No overdue invoices.")
+            logger.info("  No overdue invoices.")
 
+        logger.info("Dashboard complete: %d invoices processed", len(inv_dicts))
     finally:
         db.close()
 
