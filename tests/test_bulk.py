@@ -55,3 +55,76 @@ def test_parse_json_not_list() -> None:
     import json
     with pytest.raises(BulkImportError, match="array"):
         parse_json_invoices(json.dumps({"key": "value"}))
+
+
+def test_parse_csv_case_insensitive_columns() -> None:
+    csv_content = """Invoice_Number,Business_Unit,Supplier,Invoice_Date,Invoice_Amount,Amount_Paid,Currency,Payment_Status
+INV-CI-001,BU,Acme,2025-01-01,100.00,0.00,USD,UNPAID"""
+    rows = parse_csv_invoices(csv_content)
+    assert rows[0]["invoice_number"] == "INV-CI-001"
+
+
+def test_parse_json_null_record_skipped() -> None:
+    import json
+
+    data = [None, {"invoice_number": "INV-001", "invoice_amount": 100.0, "amount_paid": 0.0}]
+    rows = parse_json_invoices(json.dumps(data))
+    assert len(rows) == 2
+
+
+def test_parse_json_null_amounts_preserved() -> None:
+    import json
+
+    data = [{"invoice_number": "INV-002", "invoice_amount": None, "amount_paid": None}]
+    rows = parse_json_invoices(json.dumps(data))
+    assert rows[0]["invoice_amount"] is None
+
+
+def test_validate_csv_row_valid() -> None:
+    from decimal import Decimal
+
+    from app.bulk import validate_csv_row
+
+    row = {"invoice_amount": Decimal("100.00"), "amount_paid": Decimal("50.00")}
+    errors = validate_csv_row(row, 1)
+    assert errors == []
+
+
+def test_validate_csv_row_zero_amount() -> None:
+    from decimal import Decimal
+
+    from app.bulk import validate_csv_row
+
+    row = {"invoice_amount": Decimal("0.00"), "amount_paid": Decimal("0.00")}
+    errors = validate_csv_row(row, 1)
+    assert any("invoice_amount" in e for e in errors)
+
+
+def test_validate_csv_row_overpaid() -> None:
+    from decimal import Decimal
+
+    from app.bulk import validate_csv_row
+
+    row = {"invoice_amount": Decimal("100.00"), "amount_paid": Decimal("200.00")}
+    errors = validate_csv_row(row, 1)
+    assert any("exceed" in e for e in errors)
+
+
+def test_merge_invoice_dicts_applies_update() -> None:
+    from app.bulk import merge_invoice_dicts
+
+    base = {"invoice_number": "INV-001", "payment_status": "UNPAID", "amount_paid": "0.00"}
+    update = {"payment_status": "PAID", "amount_paid": "1000.00"}
+    merged = merge_invoice_dicts(base, update)
+    assert merged["payment_status"] == "PAID"
+    assert merged["amount_paid"] == "1000.00"
+
+
+def test_merge_invoice_dicts_skips_none() -> None:
+    from app.bulk import merge_invoice_dicts
+
+    base = {"invoice_number": "INV-001", "supplier": "Acme"}
+    update = {"supplier": None, "currency": "EUR"}
+    merged = merge_invoice_dicts(base, update)
+    assert merged["supplier"] == "Acme"
+    assert merged["currency"] == "EUR"
