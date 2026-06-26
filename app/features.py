@@ -161,7 +161,7 @@ def aggregate_invoices(invoices: list[dict]) -> dict[str, object]:
 
     Returns:
         Dict with total_invoices, total_invoice_amount, total_paid, total_tax,
-        total_outstanding, paid_count, unpaid_count, partial_count.
+        total_outstanding, paid_count, unpaid_count, partial_count, cancelled_count.
     """
     total_invoices = len(invoices)
     total_invoice_amount = sum((inv["invoice_amount"] for inv in invoices), DECIMAL_ZERO)
