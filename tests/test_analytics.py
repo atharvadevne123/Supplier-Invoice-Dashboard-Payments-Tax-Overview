@@ -167,3 +167,78 @@ def test_supplier_ranking_aggregates_across_invoices() -> None:
     ranking = supplier_outstanding_ranking(invoices)
     assert len(ranking) == 1
     assert ranking[0]["supplier"] == "Acme"
+
+
+def test_incomplete_invoice_count() -> None:
+    from app.analytics import incomplete_invoice_count
+
+    count = incomplete_invoice_count(SAMPLE_INVOICES)
+    assert count == 2
+
+
+def test_incomplete_invoice_count_empty() -> None:
+    from app.analytics import incomplete_invoice_count
+
+    assert incomplete_invoice_count([]) == 0
+
+
+def test_top_currencies_by_invoice_count() -> None:
+    from app.analytics import top_currencies_by_invoice_count
+
+    result = top_currencies_by_invoice_count(SAMPLE_INVOICES)
+    currencies = [r["currency"] for r in result]
+    assert "USD" in currencies
+
+
+def test_top_currencies_by_invoice_count_limit() -> None:
+    from app.analytics import top_currencies_by_invoice_count
+
+    invoices = [{"currency": c} for c in ["USD", "EUR", "GBP", "CAD", "AUD", "JPY"]]
+    result = top_currencies_by_invoice_count(invoices, top_n=3)
+    assert len(result) <= 3
+
+
+def test_top_currencies_empty() -> None:
+    from app.analytics import top_currencies_by_invoice_count
+
+    assert top_currencies_by_invoice_count([]) == []
+
+
+def test_overdue_by_supplier() -> None:
+    from app.analytics import overdue_by_supplier
+
+    old_invoices = [
+        {
+            "supplier": "OldCo",
+            "invoice_date": date.today() - timedelta(days=60),
+            "invoice_amount": Decimal("1000.00"),
+            "amount_paid": Decimal("0.00"),
+            "payment_status": "UNPAID",
+        },
+        {
+            "supplier": "OldCo",
+            "invoice_date": date.today() - timedelta(days=45),
+            "invoice_amount": Decimal("500.00"),
+            "amount_paid": Decimal("0.00"),
+            "payment_status": "PARTIAL",
+        },
+    ]
+    result = overdue_by_supplier(old_invoices)
+    assert len(result) == 1
+    assert result[0]["supplier"] == "OldCo"
+    assert result[0]["overdue_count"] == 2
+
+
+def test_overdue_by_supplier_excludes_paid() -> None:
+    from app.analytics import overdue_by_supplier
+
+    invoices = [
+        {
+            "supplier": "PaidCo",
+            "invoice_date": date.today() - timedelta(days=90),
+            "invoice_amount": Decimal("1000.00"),
+            "amount_paid": Decimal("1000.00"),
+            "payment_status": "PAID",
+        }
+    ]
+    assert overdue_by_supplier(invoices) == []
