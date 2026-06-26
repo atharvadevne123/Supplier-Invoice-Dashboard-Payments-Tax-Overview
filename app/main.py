@@ -1,6 +1,7 @@
 """FastAPI application entry point for the Supplier Invoice Dashboard API."""
 
 import logging
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 
@@ -59,6 +60,69 @@ def startup_event() -> None:
     logger.info("Supplier Invoice Dashboard API started")
 
 
+def _build_invoice_query(
+    db: Session,
+    supplier: Optional[str] = None,
+    business_unit: Optional[str] = None,
+    payment_status: Optional["PaymentStatus"] = None,
+    currency: Optional[str] = None,
+    date_from: Optional["date"] = None,
+    date_to: Optional["date"] = None,
+) -> "Query":
+    """Build a filtered SQLAlchemy query for SupplierInvoice rows.
+
+    All filter arguments are optional; omitted arguments are not applied.
+
+    Args:
+        db: Active database session.
+        supplier: Partial supplier name (case-insensitive LIKE).
+        business_unit: Partial business unit name (case-insensitive LIKE).
+        payment_status: Exact PaymentStatus enum value.
+        currency: Exact 3-letter currency code (uppercased).
+        date_from: Earliest invoice date (inclusive).
+        date_to: Latest invoice date (inclusive).
+
+    Returns:
+        Configured SQLAlchemy Query object (not yet executed).
+    """
+    from datetime import date
+    query = db.query(SupplierInvoice)
+    if supplier:
+        query = query.filter(SupplierInvoice.supplier.ilike(f"%{supplier}%"))
+    if business_unit:
+        query = query.filter(SupplierInvoice.business_unit.ilike(f"%{business_unit}%"))
+    if payment_status:
+        query = query.filter(SupplierInvoice.payment_status == payment_status.value)
+    if currency:
+        query = query.filter(SupplierInvoice.currency == currency.upper())
+    if date_from:
+        query = query.filter(SupplierInvoice.invoice_date >= date_from)
+    if date_to:
+        query = query.filter(SupplierInvoice.invoice_date <= date_to)
+    return query
+
+
+def _to_inv_dict(r: SupplierInvoice) -> dict:
+    """Convert an ORM row to a plain dict for analytics functions.
+
+    Args:
+        r: SupplierInvoice ORM instance.
+
+    Returns:
+        Dict with all invoice fields mapped to Python types.
+    """
+    return {
+        "invoice_number": r.invoice_number,
+        "business_unit": r.business_unit,
+        "supplier": r.supplier,
+        "invoice_date": r.invoice_date,
+        "invoice_amount": r.invoice_amount,
+        "amount_paid": r.amount_paid,
+        "currency": r.currency,
+        "payment_status": r.payment_status,
+    }
+
+
 def _to_response(inv: SupplierInvoice) -> InvoiceResponse:
     """Convert an ORM instance to a response schema with computed fields."""
     tax = compute_tax(inv.invoice_amount)
@@ -99,23 +163,24 @@ def get_version() -> dict:
 def list_invoices(
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(20, ge=1, le=200, description="Items per page"),
-    supplier: Optional[str] = Query(None),
-    business_unit: Optional[str] = Query(None),
-    payment_status: Optional[PaymentStatus] = Query(None),
-    currency: Optional[str] = Query(None),
+    supplier: Optional[str] = Query(None, description="Filter by partial supplier name"),
+    business_unit: Optional[str] = Query(None, description="Filter by partial business unit name"),
+    payment_status: Optional[PaymentStatus] = Query(None, description="Filter by payment status"),
+    currency: Optional[str] = Query(None, description="Filter by ISO currency code"),
+    date_from: Optional[date] = Query(None, description="Earliest invoice date (inclusive)"),
+    date_to: Optional[date] = Query(None, description="Latest invoice date (inclusive)"),
     db: Session = Depends(get_db),
 ) -> PaginatedInvoices:
     """List supplier invoices with optional filtering and pagination."""
-    query = db.query(SupplierInvoice)
-    if supplier:
-        query = query.filter(SupplierInvoice.supplier.ilike(f"%{supplier}%"))
-    if business_unit:
-        query = query.filter(SupplierInvoice.business_unit.ilike(f"%{business_unit}%"))
-    if payment_status:
-        query = query.filter(SupplierInvoice.payment_status == payment_status.value)
-    if currency:
-        query = query.filter(SupplierInvoice.currency == currency.upper())
-
+    query = _build_invoice_query(
+        db,
+        supplier=supplier,
+        business_unit=business_unit,
+        payment_status=payment_status,
+        currency=currency,
+        date_from=date_from,
+        date_to=date_to,
+    )
     all_records = query.all()
     total = len(all_records)
     page_records, total_pages = paginate(all_records, page, page_size)
@@ -184,15 +249,7 @@ def get_summary(
     if business_unit:
         query = query.filter(SupplierInvoice.business_unit.ilike(f"%{business_unit}%"))
     records = query.all()
-    inv_dicts = [
-        {
-            "invoice_amount": r.invoice_amount,
-            "amount_paid": r.amount_paid,
-            "payment_status": r.payment_status,
-        }
-        for r in records
-    ]
-    agg = aggregate_invoices(inv_dicts)
+    agg = aggregate_invoices([_to_inv_dict(r) for r in records])
     return InvoiceSummary(**agg)
 
 
@@ -200,41 +257,21 @@ def get_summary(
 def get_supplier_ranking(db: Session = Depends(get_db)) -> list[dict]:
     """Rank all suppliers by total outstanding balance (highest first)."""
     records = db.query(SupplierInvoice).all()
-    inv_dicts = [
-        {
-            "supplier": r.supplier,
-            "invoice_amount": r.invoice_amount,
-            "amount_paid": r.amount_paid,
-        }
-        for r in records
-    ]
-    return supplier_outstanding_ranking(inv_dicts)
+    return supplier_outstanding_ranking([_to_inv_dict(r) for r in records])
 
 
 @app.get(f"{settings.api_prefix}/analytics/monthly-trend", tags=["Analytics"])
 def get_monthly_trend(db: Session = Depends(get_db)) -> list[dict]:
     """Return monthly aggregated invoice and payment totals."""
     records = db.query(SupplierInvoice).all()
-    inv_dicts = [
-        {
-            "invoice_date": r.invoice_date,
-            "invoice_amount": r.invoice_amount,
-            "amount_paid": r.amount_paid,
-        }
-        for r in records
-    ]
-    return monthly_invoice_trend(inv_dicts)
+    return monthly_invoice_trend([_to_inv_dict(r) for r in records])
 
 
 @app.get(f"{settings.api_prefix}/analytics/currency-breakdown", tags=["Analytics"])
 def get_currency_breakdown(db: Session = Depends(get_db)) -> list[dict]:
     """Summarise invoice totals grouped by currency."""
     records = db.query(SupplierInvoice).all()
-    inv_dicts = [
-        {"currency": r.currency, "invoice_amount": r.invoice_amount}
-        for r in records
-    ]
-    return currency_breakdown(inv_dicts)
+    return currency_breakdown([_to_inv_dict(r) for r in records])
 
 
 @app.get(f"{settings.api_prefix}/analytics/overdue", tags=["Analytics"])
@@ -243,26 +280,14 @@ def get_overdue_invoices(db: Session = Depends(get_db)) -> list[dict]:
     records = db.query(SupplierInvoice).filter(
         SupplierInvoice.payment_status.in_(["UNPAID", "PARTIAL"])
     ).all()
-    inv_dicts = [
-        {
-            "invoice_number": r.invoice_number,
-            "supplier": r.supplier,
-            "invoice_date": r.invoice_date,
-            "invoice_amount": r.invoice_amount,
-            "amount_paid": r.amount_paid,
-            "payment_status": r.payment_status,
-        }
-        for r in records
-    ]
-    return overdue_invoices(inv_dicts)
+    return overdue_invoices([_to_inv_dict(r) for r in records])
 
 
 @app.get(f"{settings.api_prefix}/analytics/status-distribution", tags=["Analytics"])
 def get_status_distribution(db: Session = Depends(get_db)) -> dict:
     """Return counts of invoices grouped by payment status."""
     records = db.query(SupplierInvoice).all()
-    inv_dicts = [{"payment_status": r.payment_status} for r in records]
-    return payment_status_distribution(inv_dicts)
+    return payment_status_distribution([_to_inv_dict(r) for r in records])
 
 
 if __name__ == "__main__":
