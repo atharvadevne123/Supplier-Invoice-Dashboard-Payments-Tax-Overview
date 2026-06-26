@@ -128,3 +128,34 @@ def test_merge_invoice_dicts_skips_none() -> None:
     merged = merge_invoice_dicts(base, update)
     assert merged["supplier"] == "Acme"
     assert merged["currency"] == "EUR"
+
+
+def test_to_invoice_create_payload_basic() -> None:
+    from decimal import Decimal
+
+    from app.bulk import to_invoice_create_payload
+
+    row = {
+        "invoice_number": "  INV-001  ",
+        "business_unit": "Finance BU",
+        "supplier": "  Acme Corp  ",
+        "invoice_date": "2025-01-15",
+        "invoice_amount": Decimal("1000.00"),
+        "amount_paid": Decimal("0.00"),
+        "currency": "usd",
+        "payment_status": "unpaid",
+    }
+    payload = to_invoice_create_payload(row)
+    assert payload["invoice_number"] == "INV-001"
+    assert payload["supplier"] == "Acme Corp"
+    assert payload["currency"] == "USD"
+    assert payload["payment_status"] == "UNPAID"
+
+
+def test_to_invoice_create_payload_defaults() -> None:
+    from app.bulk import to_invoice_create_payload
+
+    row = {"invoice_amount": 500}
+    payload = to_invoice_create_payload(row)
+    assert payload["currency"] == "USD"
+    assert payload["payment_status"] == "UNPAID"
