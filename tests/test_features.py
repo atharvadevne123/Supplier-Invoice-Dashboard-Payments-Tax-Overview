@@ -161,3 +161,28 @@ def test_invoice_age_days_with_reference() -> None:
     inv_date = date(2025, 1, 1)
     ref = date(2025, 3, 2)
     assert invoice_age_days(inv_date, as_of=ref) == 60
+
+
+def test_classify_invoice_size_small() -> None:
+    from app.features import classify_invoice_size
+
+    assert classify_invoice_size(Decimal("500.00")) == "small"
+
+
+def test_classify_invoice_size_medium() -> None:
+    from app.features import classify_invoice_size
+
+    assert classify_invoice_size(Decimal("5000.00")) == "medium"
+
+
+def test_classify_invoice_size_large() -> None:
+    from app.features import classify_invoice_size
+
+    assert classify_invoice_size(Decimal("15000.00")) == "large"
+
+
+def test_classify_invoice_size_at_threshold() -> None:
+    from app.features import classify_invoice_size
+
+    assert classify_invoice_size(Decimal("1000.00")) == "medium"
+    assert classify_invoice_size(Decimal("10000.00")) == "large"
