@@ -69,3 +69,68 @@ def test_validate_positive_amount_ok() -> None:
 def test_validate_positive_amount_fails() -> None:
     with pytest.raises(ValueError):
         validate_positive_amount(Decimal("0.00"))
+
+
+def test_validate_non_negative_amount_zero_ok() -> None:
+    from app.validators import validate_non_negative_amount
+
+    assert validate_non_negative_amount(Decimal("0.00")) == Decimal("0.00")
+
+
+def test_validate_non_negative_amount_positive_ok() -> None:
+    from app.validators import validate_non_negative_amount
+
+    assert validate_non_negative_amount(Decimal("0.01")) == Decimal("0.01")
+
+
+def test_validate_non_negative_amount_fails_negative() -> None:
+    from app.validators import validate_non_negative_amount
+
+    with pytest.raises(ValueError):
+        validate_non_negative_amount(Decimal("-0.01"))
+
+
+def test_validate_non_empty_string_ok() -> None:
+    from app.validators import validate_non_empty_string
+
+    assert validate_non_empty_string("  hello  ") == "hello"
+
+
+def test_validate_non_empty_string_fails_blank() -> None:
+    from app.validators import validate_non_empty_string
+
+    with pytest.raises(ValueError):
+        validate_non_empty_string("   ")
+
+
+def test_validate_non_empty_string_fails_empty() -> None:
+    from app.validators import validate_non_empty_string
+
+    with pytest.raises(ValueError):
+        validate_non_empty_string("")
+
+
+def test_validate_business_unit_valid() -> None:
+    from app.validators import validate_business_unit
+
+    assert validate_business_unit("Finance BU") == "Finance BU"
+
+
+def test_validate_business_unit_strips_whitespace() -> None:
+    from app.validators import validate_business_unit
+
+    assert validate_business_unit("  IT Dept  ") == "IT Dept"
+
+
+def test_validate_business_unit_fails_empty() -> None:
+    from app.validators import validate_business_unit
+
+    with pytest.raises(ValueError):
+        validate_business_unit("   ")
+
+
+def test_validate_business_unit_fails_special_chars() -> None:
+    from app.validators import validate_business_unit
+
+    with pytest.raises(ValueError):
+        validate_business_unit("Finance@BU!")
