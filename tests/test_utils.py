@@ -79,3 +79,61 @@ def test_safe_divide_normal() -> None:
 def test_safe_divide_by_zero() -> None:
     result = safe_divide(Decimal("10"), Decimal("0"))
     assert result == Decimal("0")
+
+
+def test_default_page_size_constant() -> None:
+    from app.utils import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+
+    assert DEFAULT_PAGE_SIZE == 20
+    assert MAX_PAGE_SIZE == 200
+
+
+def test_clamp_within_range() -> None:
+    from app.utils import clamp
+
+    assert clamp(5, 1, 10) == 5
+
+
+def test_clamp_below_minimum() -> None:
+    from app.utils import clamp
+
+    assert clamp(-1, 0, 10) == 0
+
+
+def test_clamp_above_maximum() -> None:
+    from app.utils import clamp
+
+    assert clamp(100, 0, 10) == 10
+
+
+def test_clamp_at_boundary() -> None:
+    from app.utils import clamp
+
+    assert clamp(0, 0, 10) == 0
+    assert clamp(10, 0, 10) == 10
+
+
+def test_truncate_string_short() -> None:
+    from app.utils import truncate_string
+
+    assert truncate_string("hello", 20) == "hello"
+
+
+def test_truncate_string_exact_length() -> None:
+    from app.utils import truncate_string
+
+    assert truncate_string("hello", 5) == "hello"
+
+
+def test_truncate_string_truncated() -> None:
+    from app.utils import truncate_string
+
+    result = truncate_string("hello world", 8)
+    assert result.endswith("...")
+    assert len(result) == 8
+
+
+def test_paginate_invalid_page_clamped_to_one() -> None:
+    items = list(range(5))
+    sliced, _ = paginate(items, -5, 10)
+    assert sliced == items
