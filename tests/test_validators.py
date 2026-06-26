@@ -134,3 +134,29 @@ def test_validate_business_unit_fails_special_chars() -> None:
 
     with pytest.raises(ValueError):
         validate_business_unit("Finance@BU!")
+
+
+def test_validate_supplier_name_valid() -> None:
+    from app.validators import validate_supplier_name
+
+    assert validate_supplier_name("Acme Corp") == "Acme Corp"
+
+
+def test_validate_supplier_name_strips_whitespace() -> None:
+    from app.validators import validate_supplier_name
+
+    assert validate_supplier_name("  Beta Ltd  ") == "Beta Ltd"
+
+
+def test_validate_supplier_name_fails_empty() -> None:
+    from app.validators import validate_supplier_name
+
+    with pytest.raises(ValueError):
+        validate_supplier_name("   ")
+
+
+def test_validate_supplier_name_fails_too_long() -> None:
+    from app.validators import validate_supplier_name
+
+    with pytest.raises(ValueError):
+        validate_supplier_name("A" * 201)
