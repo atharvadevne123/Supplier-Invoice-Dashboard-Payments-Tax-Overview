@@ -91,6 +91,32 @@ def validate_csv_row(row: dict[str, Any], row_index: int) -> list[str]:
     return errors
 
 
+def to_invoice_create_payload(row: dict[str, Any]) -> dict[str, Any]:
+    """Convert a parsed CSV/JSON row to an InvoiceCreate-compatible dict.
+
+    Normalises field types so the dict can be passed directly to the
+    InvoiceCreate Pydantic schema for validation.
+
+    Args:
+        row: Invoice dict from parse_csv_invoices or parse_json_invoices.
+
+    Returns:
+        Dict with fields coerced to the correct types for InvoiceCreate.
+    """
+    from decimal import Decimal as _D
+
+    return {
+        "invoice_number": str(row.get("invoice_number", "")).strip(),
+        "business_unit": str(row.get("business_unit", "")).strip(),
+        "supplier": str(row.get("supplier", "")).strip(),
+        "invoice_date": row.get("invoice_date"),
+        "invoice_amount": _D(str(row["invoice_amount"])) if row.get("invoice_amount") is not None else _D("0"),
+        "amount_paid": _D(str(row.get("amount_paid", "0"))),
+        "currency": str(row.get("currency", "USD")).strip().upper(),
+        "payment_status": str(row.get("payment_status", "UNPAID")).strip().upper(),
+    }
+
+
 def merge_invoice_dicts(base: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:
     """Merge update fields into base, skipping keys with None values.
 
