@@ -95,3 +95,69 @@ def test_aggregate_invoices_counts() -> None:
     assert result["paid_count"] == 1
     assert result["unpaid_count"] == 1
     assert result["partial_count"] == 1
+
+
+def test_aggregate_invoices_cancelled_count() -> None:
+    from app.features import aggregate_invoices
+
+    invoices = [
+        {"invoice_amount": Decimal("200"), "amount_paid": Decimal("0"), "payment_status": "CANCELLED"},
+        {"invoice_amount": Decimal("300"), "amount_paid": Decimal("0"), "payment_status": "UNPAID"},
+    ]
+    result = aggregate_invoices(invoices)
+    assert result["cancelled_count"] == 1
+
+
+def test_compute_payment_ratio_full() -> None:
+    from app.features import compute_payment_ratio
+
+    ratio = compute_payment_ratio(Decimal("1000"), Decimal("1000"))
+    assert ratio == Decimal("1.0000")
+
+
+def test_compute_payment_ratio_partial() -> None:
+    from app.features import compute_payment_ratio
+
+    ratio = compute_payment_ratio(Decimal("1000"), Decimal("250"))
+    assert ratio == Decimal("0.2500")
+
+
+def test_compute_payment_ratio_zero_invoice() -> None:
+    from app.features import compute_payment_ratio
+
+    ratio = compute_payment_ratio(Decimal("0"), Decimal("0"))
+    assert ratio == Decimal("0")
+
+
+def test_compute_payment_ratio_capped_at_one() -> None:
+    from app.features import compute_payment_ratio
+
+    ratio = compute_payment_ratio(Decimal("100"), Decimal("200"))
+    assert ratio == Decimal("1.0000")
+
+
+def test_invoice_age_days_today() -> None:
+    from datetime import date
+
+    from app.features import invoice_age_days
+
+    assert invoice_age_days(date.today()) == 0
+
+
+def test_invoice_age_days_past() -> None:
+    from datetime import date, timedelta
+
+    from app.features import invoice_age_days
+
+    old = date.today() - timedelta(days=30)
+    assert invoice_age_days(old) == 30
+
+
+def test_invoice_age_days_with_reference() -> None:
+    from datetime import date
+
+    from app.features import invoice_age_days
+
+    inv_date = date(2025, 1, 1)
+    ref = date(2025, 3, 2)
+    assert invoice_age_days(inv_date, as_of=ref) == 60
