@@ -63,6 +63,39 @@ def sample_invoice_data() -> dict:
 
 
 @pytest.fixture
+def paid_invoice_data() -> dict:
+    """Return a valid invoice payload dict for a fully paid invoice."""
+    return {
+        "invoice_number": "INV-PAID-001",
+        "business_unit": "Operations BU",
+        "supplier": "Beta Corp",
+        "invoice_date": "2025-03-10",
+        "invoice_amount": "2000.00",
+        "amount_paid": "2000.00",
+        "currency": "EUR",
+        "payment_status": "PAID",
+    }
+
+
+@pytest.fixture
+def overdue_invoice_data() -> dict:
+    """Return an invoice payload dict that is overdue (60 days old, unpaid)."""
+    from datetime import date, timedelta
+
+    old_date = (date.today() - timedelta(days=60)).isoformat()
+    return {
+        "invoice_number": "INV-OVERDUE-001",
+        "business_unit": "Finance BU",
+        "supplier": "Old Creditor Ltd",
+        "invoice_date": old_date,
+        "invoice_amount": "5000.00",
+        "amount_paid": "0.00",
+        "currency": "USD",
+        "payment_status": "UNPAID",
+    }
+
+
+@pytest.fixture
 def seed_invoices(db_session):
     """Insert a small set of invoices for aggregate-query tests."""
     today = date.today()
