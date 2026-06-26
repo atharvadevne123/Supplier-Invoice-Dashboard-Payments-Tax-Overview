@@ -137,3 +137,30 @@ def test_paginate_invalid_page_clamped_to_one() -> None:
     items = list(range(5))
     sliced, _ = paginate(items, -5, 10)
     assert sliced == items
+
+
+def test_chunk_list_even_split() -> None:
+    from app.utils import chunk_list
+
+    chunks = chunk_list([1, 2, 3, 4, 5, 6], 2)
+    assert chunks == [[1, 2], [3, 4], [5, 6]]
+
+
+def test_chunk_list_uneven_split() -> None:
+    from app.utils import chunk_list
+
+    chunks = chunk_list([1, 2, 3, 4, 5], 2)
+    assert chunks[-1] == [5]
+
+
+def test_chunk_list_empty() -> None:
+    from app.utils import chunk_list
+
+    assert chunk_list([], 3) == []
+
+
+def test_chunk_list_chunk_larger_than_list() -> None:
+    from app.utils import chunk_list
+
+    chunks = chunk_list([1, 2], 10)
+    assert chunks == [[1, 2]]
