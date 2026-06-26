@@ -349,6 +349,16 @@ def get_metrics(db: Session = Depends(get_db)) -> dict:
     }
 
 
+@app.get(f"{settings.api_prefix}/analytics/incomplete-count", tags=["Analytics"])
+def get_incomplete_count(db: Session = Depends(get_db)) -> dict:
+    """Return the count of invoices in UNPAID or PARTIAL status."""
+    from app.analytics import incomplete_invoice_count
+
+    records = db.query(SupplierInvoice).all()
+    count = incomplete_invoice_count([_to_inv_dict(r) for r in records])
+    return {"incomplete_count": count}
+
+
 @app.get(f"{settings.api_prefix}/analytics/currency-normalized", tags=["Analytics"])
 def get_currency_normalized(db: Session = Depends(get_db)) -> list[dict]:
     """Return all invoices with invoice amounts normalized to USD."""
