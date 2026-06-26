@@ -87,6 +87,55 @@ def build_graph_view(invoices: list[dict]) -> dict[str, Any]:
     }
 
 
+def build_summary_cards(invoices: list[dict]) -> list[dict[str, Any]]:
+    """Build KPI summary card data for the dashboard header row.
+
+    Returns four cards: Total Invoices, Total Amount, Total Paid, Total Outstanding.
+
+    Args:
+        invoices: List of invoice dicts with invoice_amount and amount_paid.
+
+    Returns:
+        List of card dicts with label and value keys.
+    """
+    total_amount = sum((inv["invoice_amount"] for inv in invoices), DECIMAL_ZERO)
+    total_paid = sum((inv["amount_paid"] for inv in invoices), DECIMAL_ZERO)
+    total_outstanding = sum(
+        (compute_outstanding(inv["invoice_amount"], inv["amount_paid"]) for inv in invoices),
+        DECIMAL_ZERO,
+    )
+    return [
+        {"label": "Total Invoices", "value": len(invoices)},
+        {"label": "Total Amount", "value": total_amount},
+        {"label": "Total Paid", "value": total_paid},
+        {"label": "Total Outstanding", "value": total_outstanding},
+    ]
+
+
+def build_payment_summary(invoices: list[dict]) -> dict[str, Any]:
+    """Summarise payment completion as a percentage and breakdown.
+
+    Args:
+        invoices: List of invoice dicts with invoice_amount and amount_paid.
+
+    Returns:
+        Dict with total_invoices, paid_count, unpaid_count, partial_count,
+        and payment_completion_pct (0-100 rounded to 2dp).
+    """
+    total = len(invoices)
+    paid_count = sum(1 for inv in invoices if inv.get("payment_status") == "PAID")
+    unpaid_count = sum(1 for inv in invoices if inv.get("payment_status") == "UNPAID")
+    partial_count = sum(1 for inv in invoices if inv.get("payment_status") == "PARTIAL")
+    completion_pct = round((paid_count / total * 100), 2) if total else 0.0
+    return {
+        "total_invoices": total,
+        "paid_count": paid_count,
+        "unpaid_count": unpaid_count,
+        "partial_count": partial_count,
+        "payment_completion_pct": completion_pct,
+    }
+
+
 def build_view_selector_payload(invoices: list[dict]) -> dict[str, Any]:
     """Return both table and graph views in a single payload for the view-selector UI.
 
