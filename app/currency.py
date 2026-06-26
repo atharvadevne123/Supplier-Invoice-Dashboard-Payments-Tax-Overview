@@ -16,7 +16,19 @@ _STATIC_RATES: dict[str, Decimal] = {
     "JPY": Decimal("149.50"),
     "CHF": Decimal("0.8900"),
     "INR": Decimal("83.20"),
+    "CNY": Decimal("7.2400"),
+    "SGD": Decimal("1.3500"),
+    "MXN": Decimal("17.15"),
 }
+
+
+def list_supported_currencies() -> list[str]:
+    """Return a sorted list of currency codes with known exchange rates.
+
+    Returns:
+        Sorted list of 3-letter ISO currency codes.
+    """
+    return sorted(_STATIC_RATES.keys())
 
 
 @lru_cache(maxsize=512)
@@ -24,6 +36,13 @@ def get_exchange_rate(from_currency: str, to_currency: str = "USD") -> Optional[
     """Return the exchange rate from from_currency to to_currency.
 
     Uses a static rate table. Returns None if either currency is unknown.
+
+    Args:
+        from_currency: Source ISO currency code.
+        to_currency: Target ISO currency code (default "USD").
+
+    Returns:
+        Exchange rate as Decimal rounded to 6 places, or None if unknown currency.
     """
     from_rate = _STATIC_RATES.get(from_currency.upper())
     to_rate = _STATIC_RATES.get(to_currency.upper())
@@ -40,7 +59,13 @@ def convert_amount(
 ) -> Optional[Decimal]:
     """Convert amount from from_currency to to_currency.
 
-    Returns None if the conversion rate is unavailable.
+    Args:
+        amount: Decimal amount to convert.
+        from_currency: Source ISO currency code.
+        to_currency: Target ISO currency code (default "USD").
+
+    Returns:
+        Converted amount rounded to 2 decimal places, or None if rate unavailable.
     """
     if from_currency.upper() == to_currency.upper():
         return amount
@@ -53,7 +78,14 @@ def convert_amount(
 def normalize_to_usd(invoices: list[dict]) -> list[dict]:
     """Return a copy of each invoice dict with invoice_amount converted to USD.
 
-    Invoices with unknown currencies are passed through unchanged.
+    Invoices with unknown currencies are passed through unchanged with the
+    original invoice_amount used as the fallback USD amount.
+
+    Args:
+        invoices: List of invoice dicts with invoice_amount and currency fields.
+
+    Returns:
+        List of dicts with an added invoice_amount_usd field.
     """
     normalized = []
     for inv in invoices:
@@ -65,3 +97,19 @@ def normalize_to_usd(invoices: list[dict]) -> list[dict]:
             logger.warning("Cannot normalize %s to USD — unknown currency", currency)
             normalized.append({**inv, "invoice_amount_usd": inv["invoice_amount"]})
     return normalized
+
+
+def normalize_amount_list(
+    amounts: list[tuple[Decimal, str]],
+    to_currency: str = "USD",
+) -> list[Optional[Decimal]]:
+    """Batch-convert a list of (amount, currency) pairs to a target currency.
+
+    Args:
+        amounts: List of (amount, from_currency) tuples.
+        to_currency: Target ISO currency code (default "USD").
+
+    Returns:
+        List of converted Decimal amounts (None where conversion unavailable).
+    """
+    return [convert_amount(amount, currency, to_currency) for amount, currency in amounts]
