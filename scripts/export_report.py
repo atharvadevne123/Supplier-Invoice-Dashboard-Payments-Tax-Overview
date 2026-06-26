@@ -34,6 +34,21 @@ def _invoice_to_dict(inv: SupplierInvoice) -> dict:
     }
 
 
+def get_report_path(base_name: str, output_dir: str = ".") -> str:
+    """Build a full output file path under output_dir.
+
+    Args:
+        base_name: File name (e.g. "invoice_report.csv").
+        output_dir: Directory to write to (default current directory).
+
+    Returns:
+        Absolute path string combining output_dir and base_name.
+    """
+    import os
+
+    return os.path.join(os.path.abspath(output_dir), base_name)
+
+
 def export_csv(output_path: str = "invoice_report.csv") -> None:
     """Write all invoices to a CSV file at output_path."""
     create_tables()
