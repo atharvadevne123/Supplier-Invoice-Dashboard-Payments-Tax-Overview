@@ -85,7 +85,6 @@ def _build_invoice_query(
     Returns:
         Configured SQLAlchemy Query object (not yet executed).
     """
-    from datetime import date
     query = db.query(SupplierInvoice)
     if supplier:
         query = query.filter(SupplierInvoice.supplier.ilike(f"%{supplier}%"))

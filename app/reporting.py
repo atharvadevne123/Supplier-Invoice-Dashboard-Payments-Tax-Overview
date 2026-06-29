@@ -4,7 +4,12 @@ import logging
 from decimal import Decimal
 from typing import Any
 
-from app.features import DECIMAL_ZERO, apply_conditional_formatting, compute_outstanding, compute_tax
+from app.features import (
+    DECIMAL_ZERO,
+    apply_conditional_formatting,
+    compute_outstanding,
+    compute_tax,
+)
 
 logger = logging.getLogger(__name__)
 

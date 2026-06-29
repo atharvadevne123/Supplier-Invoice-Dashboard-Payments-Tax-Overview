@@ -1,6 +1,5 @@
 """Tests for the application settings and field validators."""
 
-import os
 
 import pytest
 
